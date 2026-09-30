@@ -379,14 +379,12 @@ PlasmoidItem {
                 // --- TEMP & BATTERY ROW ---
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: 7
+                    spacing: 0
 
                     // Temp Badge
-                    Rectangle {
+                    Item {
                         Layout.fillWidth: true
                         height: root.baseFontSize + 38
-                        radius: 10
-                        color: "#1e222d"
 
                         ColumnLayout {
                             anchors.centerIn: parent
@@ -405,15 +403,28 @@ PlasmoidItem {
                                 font.bold: true
                                 Layout.alignment: Qt.AlignHCenter
                             }
+                            Text {
+                                text: "APU"
+                                color: "transparent"
+                                font.pixelSize: root.baseFontSize - 3
+                                font.bold: true
+                                Layout.alignment: Qt.AlignHCenter
+                            }
                         }
                     }
 
-                    // Battery Badge
+                    // Vertical Separator
                     Rectangle {
+                        Layout.preferredWidth: 1
+                        Layout.preferredHeight: root.baseFontSize + 24
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#282d3c"
+                    }
+
+                    // Battery Badge
+                    Item {
                         Layout.fillWidth: true
                         height: root.baseFontSize + 38
-                        radius: 10
-                        color: "#1e222d"
 
                         ColumnLayout {
                             anchors.centerIn: parent
@@ -442,12 +453,18 @@ PlasmoidItem {
                         }
                     }
 
-                    // Battery Health Badge
+                    // Vertical Separator
                     Rectangle {
+                        Layout.preferredWidth: 1
+                        Layout.preferredHeight: root.baseFontSize + 24
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#282d3c"
+                    }
+
+                    // Battery Health Badge
+                    Item {
                         Layout.fillWidth: true
                         height: root.baseFontSize + 38
-                        radius: 10
-                        color: "#1e222d"
 
                         ColumnLayout {
                             anchors.centerIn: parent

@@ -10,18 +10,31 @@ KCMUtils.SimpleKCM {
     property alias cfg_fontSizeScale: fontSizeSlider.value
 
     Kirigami.FormLayout {
-        QQC2.Slider {
-            id: fontSizeSlider
+        RowLayout {
             Kirigami.FormData.label: i18n("Font Size:")
-            from: 10
-            to: 18
-            stepSize: 1
-            snapMode: QQC2.Slider.SnapAlways
+            spacing: Kirigami.Units.largeSpacing
+
+            QQC2.Slider {
+                id: fontSizeSlider
+                Layout.preferredWidth: Kirigami.Units.gridUnit * 12
+                from: 10
+                to: 18
+                stepSize: 1
+                snapMode: QQC2.Slider.SnapAlways
+            }
+
+            QQC2.Label {
+                id: sizeValueLabel
+                text: fontSizeSlider.value + " px"
+                font.bold: true
+                Layout.preferredWidth: Kirigami.Units.gridUnit * 3
+            }
         }
 
         QQC2.Label {
-            text: fontSizeSlider.value + " px (" + (fontSizeSlider.value <= 11 ? "Small" : (fontSizeSlider.value <= 13 ? "Medium / Default" : (fontSizeSlider.value <= 15 ? "Large" : "Extra Large"))) + ")"
+            text: i18n("Default: 12 px (range 10 - 18 px)")
             color: Kirigami.Theme.disabledTextColor
+            font.pixelSize: Kirigami.Theme.smallFont.pixelSize
         }
     }
 }
