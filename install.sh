@@ -31,7 +31,10 @@ if command -v qdbus6 >/dev/null 2>&1; then
     qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript "
     var d = desktops();
     if (d.length > 0) {
-        d[0].addWidget('org.ryan.deckmonitor');
+        var w = d[0].addWidget('org.ryan.deckmonitor');
+        if (w) {
+            w.userBackgroundHints = 'NoBackground';
+        }
     }
     " || true
 fi

@@ -7,14 +7,19 @@ import org.kde.kirigami as Kirigami
 PlasmoidItem {
     id: root
 
-    Plasmoid.backgroundHints: "NoBackground"
+    Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground | PlasmaCore.Types.ConfigurableBackground
+
     preferredRepresentation: fullRepresentation
     implicitWidth: 320
-    implicitHeight: 460
+    implicitHeight: 380
     Layout.minimumWidth: 270
-    Layout.minimumHeight: 420
+    Layout.minimumHeight: 350
     Layout.preferredWidth: 330
-    Layout.preferredHeight: 470
+    Layout.preferredHeight: 390
+
+    Component.onCompleted: {
+        Plasmoid.userBackgroundHints = PlasmaCore.Types.NoBackground;
+    }
 
     fullRepresentation: Item {
         id: container
@@ -79,7 +84,7 @@ PlasmoidItem {
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 12
-                spacing: 10
+                spacing: 9
 
                 // --- HEADER ---
                 RowLayout {
@@ -103,7 +108,7 @@ PlasmoidItem {
 
                     Item { Layout.fillWidth: true }
 
-                    // Ping Indicator Badge (Safe width, no clipping)
+                    // Ping Indicator Badge
                     Rectangle {
                         color: "#212532"
                         radius: 8
@@ -174,7 +179,7 @@ PlasmoidItem {
                     color: "#242834"
                 }
 
-                // --- HARDWARE SECTION (CPU, RAM, STORAGE, SDCARD) ---
+                // --- HARDWARE SECTION (CPU, RAM) ---
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 7
@@ -243,87 +248,87 @@ PlasmoidItem {
                         }
                     }
 
-                    // INTERNAL STORAGE
-                    ColumnLayout {
+                    // --- SIDE-BY-SIDE STORAGE (INTERNAL & MICROSD) ---
+                    RowLayout {
                         Layout.fillWidth: true
-                        spacing: 2
+                        spacing: 10
 
-                        RowLayout {
+                        // Internal Storage (Left)
+                        ColumnLayout {
                             Layout.fillWidth: true
-                            Text { text: "Internal Storage (/home)"; color: "#80cbc4"; font.pixelSize: 10; font.bold: true }
-                            Item { Layout.fillWidth: true }
-                            Text {
-                                text: (container.monitorData.storage.used_gb || 0) + " / " + (container.monitorData.storage.total_gb || 0) + " GB (" + (container.monitorData.storage.percent || 0) + "%)"
-                                color: "#ffffff"
-                                font.pixelSize: 10
-                                font.bold: true
+                            Layout.preferredWidth: 1
+                            spacing: 2
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Text { text: "Internal (/home)"; color: "#80cbc4"; font.pixelSize: 10; font.bold: true }
+                                Item { Layout.fillWidth: true }
+                                Text {
+                                    text: (container.monitorData.storage.percent || 0) + "%"
+                                    color: "#ffffff"
+                                    font.pixelSize: 10
+                                    font.bold: true
+                                }
                             }
-                        }
 
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: 6
-                            radius: 3
-                            color: "#242936"
                             Rectangle {
-                                width: Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.storage.percent || 0) / 100.0)))
-                                height: parent.height
+                                Layout.fillWidth: true
+                                height: 6
                                 radius: 3
-                                color: (container.monitorData.storage.percent > 90) ? "#ff5252" : ((container.monitorData.storage.percent > 75) ? "#ffa726" : "#26a69a")
-                                Behavior on width { NumberAnimation { duration: 250 } }
+                                color: "#242936"
+                                Rectangle {
+                                    width: Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.storage.percent || 0) / 100.0)))
+                                    height: parent.height
+                                    radius: 3
+                                    color: (container.monitorData.storage.percent > 90) ? "#ff5252" : ((container.monitorData.storage.percent > 75) ? "#ffa726" : "#26a69a")
+                                    Behavior on width { NumberAnimation { duration: 250 } }
+                                }
                             }
-                        }
 
-                        RowLayout {
-                            Layout.fillWidth: true
                             Text {
-                                text: "Free: " + (container.monitorData.storage.free_gb || 0) + " GB"
+                                text: (container.monitorData.storage.used_gb || 0) + " / " + (container.monitorData.storage.total_gb || 0) + " GB"
                                 color: "#78909c"
                                 font.pixelSize: 9
                             }
-                            Item { Layout.fillWidth: true }
                         }
-                    }
 
-                    // MICROSD STORAGE
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
-
-                        RowLayout {
+                        // MicroSD Storage (Right)
+                        ColumnLayout {
                             Layout.fillWidth: true
-                            Text { text: "MicroSD Card"; color: "#ffb74d"; font.pixelSize: 10; font.bold: true }
-                            Item { Layout.fillWidth: true }
-                            Text {
-                                text: container.monitorData.sdcard.mounted ? ((container.monitorData.sdcard.used_gb || 0) + " / " + (container.monitorData.sdcard.total_gb || 0) + " GB (" + (container.monitorData.sdcard.percent || 0) + "%)") : "Not Inserted"
-                                color: container.monitorData.sdcard.mounted ? "#ffffff" : "#78909c"
-                                font.pixelSize: 10
-                                font.bold: true
+                            Layout.preferredWidth: 1
+                            spacing: 2
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Text { text: "MicroSD Card"; color: "#ffb74d"; font.pixelSize: 10; font.bold: true }
+                                Item { Layout.fillWidth: true }
+                                Text {
+                                    text: container.monitorData.sdcard.mounted ? ((container.monitorData.sdcard.percent || 0) + "%") : "N/A"
+                                    color: container.monitorData.sdcard.mounted ? "#ffffff" : "#78909c"
+                                    font.pixelSize: 10
+                                    font.bold: true
+                                }
                             }
-                        }
 
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: 6
-                            radius: 3
-                            color: "#242936"
                             Rectangle {
-                                width: container.monitorData.sdcard.mounted ? Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.sdcard.percent || 0) / 100.0))) : 0
-                                height: parent.height
+                                Layout.fillWidth: true
+                                height: 6
                                 radius: 3
-                                color: (container.monitorData.sdcard.percent > 90) ? "#ff5252" : ((container.monitorData.sdcard.percent > 75) ? "#ff9800" : "#ffb74d")
-                                Behavior on width { NumberAnimation { duration: 250 } }
+                                color: "#242936"
+                                Rectangle {
+                                    width: container.monitorData.sdcard.mounted ? Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.sdcard.percent || 0) / 100.0))) : 0
+                                    height: parent.height
+                                    radius: 3
+                                    color: (container.monitorData.sdcard.percent > 90) ? "#ff5252" : ((container.monitorData.sdcard.percent > 75) ? "#ff9800" : "#ffb74d")
+                                    Behavior on width { NumberAnimation { duration: 250 } }
+                                }
                             }
-                        }
 
-                        RowLayout {
-                            Layout.fillWidth: true
                             Text {
-                                text: container.monitorData.sdcard.mounted ? ("Free: " + (container.monitorData.sdcard.free_gb || 0) + " GB") : "No SD Card mounted"
+                                text: container.monitorData.sdcard.mounted ? ((container.monitorData.sdcard.used_gb || 0) + " / " + (container.monitorData.sdcard.total_gb || 0) + " GB") : "Not Inserted"
                                 color: "#78909c"
                                 font.pixelSize: 9
                             }
-                            Item { Layout.fillWidth: true }
                         }
                     }
                 }
@@ -343,7 +348,7 @@ PlasmoidItem {
                     // Temp Badge
                     Rectangle {
                         Layout.fillWidth: true
-                        height: 52
+                        height: 50
                         radius: 10
                         color: "#1e222d"
 
@@ -367,10 +372,10 @@ PlasmoidItem {
                         }
                     }
 
-                    // Battery Badge (Clear Charging / Plugged In Indicator)
+                    // Battery Badge
                     Rectangle {
                         Layout.fillWidth: true
-                        height: 52
+                        height: 50
                         radius: 10
                         color: container.monitorData.battery.is_plugged ? "#1a2c26" : "#1e222d"
                         border.color: container.monitorData.battery.is_plugged ? "#2e7d32" : "#2a303d"
@@ -406,7 +411,7 @@ PlasmoidItem {
                     // Battery Health Badge
                     Rectangle {
                         Layout.fillWidth: true
-                        height: 52
+                        height: 50
                         radius: 10
                         color: "#1e222d"
 
@@ -448,7 +453,7 @@ PlasmoidItem {
                 // --- SERVICES GRID ---
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: 6
+                    spacing: 5
 
                     Text {
                         text: "SERVICES"
@@ -512,7 +517,7 @@ PlasmoidItem {
                             }
                         }
 
-                        // Rclone
+                        // Rclone (Compact label - no overflow)
                         Rectangle {
                             Layout.fillWidth: true
                             height: 25
@@ -525,7 +530,7 @@ PlasmoidItem {
                                 anchors.fill: parent
                                 anchors.leftMargin: 8
                                 anchors.rightMargin: 8
-                                Text { text: "Rclone (GDrive)"; color: "#cfd8dc"; font.pixelSize: 10; font.bold: true }
+                                Text { text: "Rclone"; color: "#cfd8dc"; font.pixelSize: 10; font.bold: true }
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: container.monitorData.services.rclone ? "ACTIVE" : "OFF"
