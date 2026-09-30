@@ -500,14 +500,20 @@ PlasmoidItem {
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.leftMargin: 8
-                                anchors.rightMargin: 8
-                                Text { text: "Syncthing"; color: "#cfd8dc"; font.pixelSize: 10; font.bold: true }
+                                anchors.leftMargin: 6
+                                anchors.rightMargin: 6
+                                spacing: 4
+                                Kirigami.Icon {
+                                    source: "syncthing"
+                                    Layout.preferredWidth: 13
+                                    Layout.preferredHeight: 13
+                                }
+                                Text { text: "Syncthing"; color: "#cfd8dc"; font.pixelSize: 9; font.bold: true }
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: container.monitorData.services.syncthing ? "ACTIVE" : "OFF"
                                     color: container.monitorData.services.syncthing ? "#00e676" : "#78909c"
-                                    font.pixelSize: 9
+                                    font.pixelSize: 8
                                     font.bold: true
                                 }
                             }
@@ -524,20 +530,26 @@ PlasmoidItem {
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.leftMargin: 8
-                                anchors.rightMargin: 8
-                                Text { text: "Dropbox"; color: "#cfd8dc"; font.pixelSize: 10; font.bold: true }
+                                anchors.leftMargin: 6
+                                anchors.rightMargin: 6
+                                spacing: 4
+                                Kirigami.Icon {
+                                    source: "folder-dropbox"
+                                    Layout.preferredWidth: 13
+                                    Layout.preferredHeight: 13
+                                }
+                                Text { text: "Dropbox"; color: "#cfd8dc"; font.pixelSize: 9; font.bold: true }
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: container.monitorData.services.dropbox ? "ACTIVE" : "OFF"
                                     color: container.monitorData.services.dropbox ? "#40c4ff" : "#78909c"
-                                    font.pixelSize: 9
+                                    font.pixelSize: 8
                                     font.bold: true
                                 }
                             }
                         }
 
-                        // Rclone (Compact label - no overflow)
+                        // Rclone
                         Rectangle {
                             Layout.fillWidth: true
                             height: 25
@@ -548,14 +560,20 @@ PlasmoidItem {
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.leftMargin: 8
-                                anchors.rightMargin: 8
-                                Text { text: "Rclone"; color: "#cfd8dc"; font.pixelSize: 10; font.bold: true }
+                                anchors.leftMargin: 6
+                                anchors.rightMargin: 6
+                                spacing: 4
+                                Kirigami.Icon {
+                                    source: "folder-gdrive"
+                                    Layout.preferredWidth: 13
+                                    Layout.preferredHeight: 13
+                                }
+                                Text { text: "Rclone"; color: "#cfd8dc"; font.pixelSize: 9; font.bold: true }
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: container.monitorData.services.rclone ? "ACTIVE" : "OFF"
                                     color: container.monitorData.services.rclone ? "#00e676" : "#78909c"
-                                    font.pixelSize: 9
+                                    font.pixelSize: 8
                                     font.bold: true
                                 }
                             }
@@ -572,14 +590,20 @@ PlasmoidItem {
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.leftMargin: 8
-                                anchors.rightMargin: 8
-                                Text { text: "Tailscale"; color: "#cfd8dc"; font.pixelSize: 10; font.bold: true }
+                                anchors.leftMargin: 6
+                                anchors.rightMargin: 6
+                                spacing: 4
+                                Kirigami.Icon {
+                                    source: "network-vpn"
+                                    Layout.preferredWidth: 13
+                                    Layout.preferredHeight: 13
+                                }
+                                Text { text: "Tailscale"; color: "#cfd8dc"; font.pixelSize: 9; font.bold: true }
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: container.monitorData.services.tailscale ? "ONLINE" : "OFF"
                                     color: container.monitorData.services.tailscale ? "#8c9eff" : "#78909c"
-                                    font.pixelSize: 9
+                                    font.pixelSize: 8
                                     font.bold: true
                                 }
                             }
@@ -597,14 +621,20 @@ PlasmoidItem {
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.leftMargin: 8
-                            anchors.rightMargin: 8
-                            Text { text: "Tmux Sessions"; color: "#b0bec5"; font.pixelSize: 10; font.bold: true }
+                            anchors.leftMargin: 6
+                            anchors.rightMargin: 6
+                            spacing: 4
+                            Kirigami.Icon {
+                                source: "utilities-terminal"
+                                Layout.preferredWidth: 13
+                                Layout.preferredHeight: 13
+                            }
+                            Text { text: "Tmux Sessions"; color: "#b0bec5"; font.pixelSize: 9; font.bold: true }
                             Item { Layout.fillWidth: true }
                             Text {
                                 text: (container.monitorData.services.tmux_sessions > 0) ? (container.monitorData.services.tmux_sessions + " Active") : "No Session"
                                 color: (container.monitorData.services.tmux_sessions > 0) ? "#00e5ff" : "#78909c"
-                                font.pixelSize: 9
+                                font.pixelSize: 8
                                 font.bold: true
                             }
                         }
