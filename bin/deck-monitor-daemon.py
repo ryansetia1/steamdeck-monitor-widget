@@ -7,6 +7,7 @@ import shutil
 import threading
 import subprocess
 from http.server import HTTPServer, BaseHTTPRequestHandler
+import socket
 
 CACHE_DATA = {}
 LOCK = threading.Lock()
@@ -76,10 +77,41 @@ class MetricCollector:
         except Exception:
             return {'percent': 0.0, 'used_gb': 0.0, 'total_gb': 0.0, 'free_gb': 0.0}
 
+    def get_sdcard(self):
+        sd_path = '/run/media/deck/SDcard'
+        if os.path.exists(sd_path) and os.path.ismount(sd_path):
+            try:
+                total, used, free = shutil.disk_usage(sd_path)
+                pct = round((used / total) * 100.0, 1)
+                return {
+                    'mounted': True,
+                    'percent': pct,
+                    'used_gb': round(used / (1024**3), 1),
+                    'total_gb': round(total / (1024**3), 1),
+                    'free_gb': round(free / (1024**3), 1)
+                }
+            except Exception:
+                pass
+        return {
+            'mounted': False,
+            'percent': 0.0,
+            'used_gb': 0.0,
+            'total_gb': 0.0,
+            'free_gb': 0.0
+        }
+
     def get_battery(self):
         pct = 0
-        status = 'Unknown'
+        status = 'Discharging'
         health = 'N/A'
+        acad = 0
+        try:
+            if os.path.exists('/sys/class/power_supply/ACAD/online'):
+                with open('/sys/class/power_supply/ACAD/online') as f:
+                    acad = int(f.read().strip())
+        except Exception:
+            pass
+
         try:
             b_path = '/sys/class/power_supply/BAT1'
             if not os.path.exists(b_path):
@@ -111,7 +143,24 @@ class MetricCollector:
                     health = f"{round((cf / cfd) * 100, 1)}%"
         except Exception:
             pass
-        return {'percent': pct, 'status': status, 'health': health}
+
+        is_plugged = (acad == 1)
+        is_charging = (status == 'Charging')
+        if is_charging:
+            charge_label = 'Charging'
+        elif is_plugged:
+            charge_label = 'Plugged In'
+        else:
+            charge_label = 'Discharging'
+
+        return {
+            'percent': pct,
+            'status': status,
+            'health': health,
+            'is_plugged': is_plugged,
+            'is_charging': is_charging,
+            'charge_label': charge_label
+        }
 
     def get_temperature(self):
         try:
@@ -136,6 +185,23 @@ class MetricCollector:
         except Exception:
             pass
         return "N/A"
+
+    def get_wifi(self):
+        try:
+            ssid = subprocess.check_output(['iwgetid', '-r'], stderr=subprocess.DEVNULL).decode().strip()
+            if ssid:
+                return ssid
+        except Exception:
+            pass
+
+        try:
+            out = subprocess.check_output(['nmcli', '-t', '-f', 'ACTIVE,SSID', 'dev', 'wifi'], stderr=subprocess.DEVNULL).decode()
+            for line in out.splitlines():
+                if line.startswith('yes:'):
+                    return line.split('yes:')[1].strip()
+        except Exception:
+            pass
+        return "Disconnected"
 
     def get_services(self):
         syncthing = subprocess.call(['pgrep', '-x', 'syncthing'], stdout=subprocess.DEVNULL) == 0
@@ -181,8 +247,10 @@ class MetricCollector:
             'cpu_percent': self.get_cpu(),
             'memory': self.get_memory(),
             'storage': self.get_storage(),
+            'sdcard': self.get_sdcard(),
             'battery': self.get_battery(),
             'temp': self.get_temperature(),
+            'wifi': self.get_wifi(),
             'services': self.get_services(),
             'ping': self.get_ping()
         }
@@ -218,7 +286,6 @@ class RequestHandler(BaseHTTPRequestHandler):
 class ReusableHTTPServer(HTTPServer):
     allow_reuse_address = True
     def server_bind(self):
-        import socket
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)

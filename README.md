@@ -12,12 +12,14 @@ Built with native QML/Plasma and a zero-dependency Python background daemon cons
   - **CPU Usage**: Real-time percent with dynamic color-changing progress bar (Blue → Orange → Red).
   - **RAM Usage**: Used vs. Total GB (e.g. `4.5 / 14.5 GB`), percent, and progress bar.
   - **Internal Storage**: `/home` disk space usage with visual progress bar, used/total GB, and remaining free space.
+  - **MicroSD Card Storage**: `/run/media/deck/SDcard` disk space usage with visual progress bar and free space (auto-detects unmounted state).
 - **Thermals & Battery**:
   - **APU Temperature**: Real-time Steam Deck APU temperature (via AMDGPU hwmon).
-  - **Battery Percentage & Status**: Current charge percentage + charging indicator (`⚡`).
+  - **Battery Percentage & Charging State**: Real-time level with prominent `⚡` icon and dynamic `CHARGING` / `PLUGGED IN` / `DISCHARGING` status.
   - **Battery Health**: Accurate health calculation (`charge_full` / `charge_full_design`).
 - **Network & Connectivity**:
-  - **Ping Latency**: Ping time in ms to global DNS (`1.1.1.1`), with automatic offline detection.
+  - **Connected Wi-Fi**: Active network SSID display with offline detection.
+  - **Ping Latency**: Ping time in ms to global DNS (`1.1.1.1`), with automatic offline detection and responsive layout.
   - **Tailscale**: VPN mesh status badge (`ONLINE` / `OFF`).
 - **Background Services**:
   - **Syncthing**: Sync daemon status (`ACTIVE` / `OFF`).
