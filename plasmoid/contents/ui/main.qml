@@ -285,10 +285,20 @@ PlasmoidItem {
                                 }
                             }
 
-                            Text {
-                                text: (container.monitorData.storage.used_gb || 0) + " / " + (container.monitorData.storage.total_gb || 0) + " GB"
-                                color: "#78909c"
-                                font.pixelSize: 9
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Text {
+                                    text: (container.monitorData.storage.used_gb || 0) + " / " + (container.monitorData.storage.total_gb || 0) + " GB"
+                                    color: "#78909c"
+                                    font.pixelSize: 9
+                                }
+                                Item { Layout.fillWidth: true }
+                                Text {
+                                    text: (container.monitorData.storage.free_gb || 0) + " GB free"
+                                    color: "#cfd8dc"
+                                    font.pixelSize: 9
+                                    font.bold: true
+                                }
                             }
                         }
 
@@ -324,10 +334,20 @@ PlasmoidItem {
                                 }
                             }
 
-                            Text {
-                                text: container.monitorData.sdcard.mounted ? ((container.monitorData.sdcard.used_gb || 0) + " / " + (container.monitorData.sdcard.total_gb || 0) + " GB") : "Not Inserted"
-                                color: "#78909c"
-                                font.pixelSize: 9
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Text {
+                                    text: container.monitorData.sdcard.mounted ? ((container.monitorData.sdcard.used_gb || 0) + " / " + (container.monitorData.sdcard.total_gb || 0) + " GB") : "Not Inserted"
+                                    color: "#78909c"
+                                    font.pixelSize: 9
+                                }
+                                Item { Layout.fillWidth: true }
+                                Text {
+                                    text: container.monitorData.sdcard.mounted ? ((container.monitorData.sdcard.free_gb || 0) + " GB free") : ""
+                                    color: "#cfd8dc"
+                                    font.pixelSize: 9
+                                    font.bold: true
+                                }
                             }
                         }
                     }
