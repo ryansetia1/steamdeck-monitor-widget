@@ -494,15 +494,13 @@ PlasmoidItem {
                             Layout.fillWidth: true
                             height: 25
                             radius: 8
-                            color: container.monitorData.services.syncthing ? "#182c22" : "#20232c"
-                            border.color: container.monitorData.services.syncthing ? "#2e7d32" : "#323744"
-                            border.width: 1
+                            color: "#1e222d"
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.leftMargin: 6
-                                anchors.rightMargin: 6
-                                spacing: 4
+                                anchors.leftMargin: 8
+                                anchors.rightMargin: 8
+                                spacing: 5
                                 Kirigami.Icon {
                                     source: "syncthing"
                                     Layout.preferredWidth: 13
@@ -524,15 +522,13 @@ PlasmoidItem {
                             Layout.fillWidth: true
                             height: 25
                             radius: 8
-                            color: container.monitorData.services.dropbox ? "#172735" : "#20232c"
-                            border.color: container.monitorData.services.dropbox ? "#1565c0" : "#323744"
-                            border.width: 1
+                            color: "#1e222d"
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.leftMargin: 6
-                                anchors.rightMargin: 6
-                                spacing: 4
+                                anchors.leftMargin: 8
+                                anchors.rightMargin: 8
+                                spacing: 5
                                 Kirigami.Icon {
                                     source: "folder-dropbox"
                                     Layout.preferredWidth: 13
@@ -542,7 +538,7 @@ PlasmoidItem {
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: container.monitorData.services.dropbox ? "ACTIVE" : "OFF"
-                                    color: container.monitorData.services.dropbox ? "#40c4ff" : "#78909c"
+                                    color: container.monitorData.services.dropbox ? "#00e676" : "#78909c"
                                     font.pixelSize: 8
                                     font.bold: true
                                 }
@@ -554,15 +550,13 @@ PlasmoidItem {
                             Layout.fillWidth: true
                             height: 25
                             radius: 8
-                            color: container.monitorData.services.rclone ? "#182c22" : "#20232c"
-                            border.color: container.monitorData.services.rclone ? "#2e7d32" : "#323744"
-                            border.width: 1
+                            color: "#1e222d"
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.leftMargin: 6
-                                anchors.rightMargin: 6
-                                spacing: 4
+                                anchors.leftMargin: 8
+                                anchors.rightMargin: 8
+                                spacing: 5
                                 Kirigami.Icon {
                                     source: "folder-gdrive"
                                     Layout.preferredWidth: 13
@@ -584,15 +578,13 @@ PlasmoidItem {
                             Layout.fillWidth: true
                             height: 25
                             radius: 8
-                            color: container.monitorData.services.tailscale ? "#1f2235" : "#20232c"
-                            border.color: container.monitorData.services.tailscale ? "#5c6bc0" : "#323744"
-                            border.width: 1
+                            color: "#1e222d"
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.leftMargin: 6
-                                anchors.rightMargin: 6
-                                spacing: 4
+                                anchors.leftMargin: 8
+                                anchors.rightMargin: 8
+                                spacing: 5
                                 Kirigami.Icon {
                                     source: "network-vpn"
                                     Layout.preferredWidth: 13
@@ -602,7 +594,7 @@ PlasmoidItem {
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: container.monitorData.services.tailscale ? "ONLINE" : "OFF"
-                                    color: container.monitorData.services.tailscale ? "#8c9eff" : "#78909c"
+                                    color: container.monitorData.services.tailscale ? "#00e676" : "#78909c"
                                     font.pixelSize: 8
                                     font.bold: true
                                 }
@@ -615,15 +607,13 @@ PlasmoidItem {
                         Layout.fillWidth: true
                         height: 24
                         radius: 8
-                        color: (container.monitorData.services.tmux_sessions > 0) ? "#1c2630" : "#20232c"
-                        border.color: (container.monitorData.services.tmux_sessions > 0) ? "#00838f" : "#323744"
-                        border.width: 1
+                        color: "#1e222d"
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.leftMargin: 6
-                            anchors.rightMargin: 6
-                            spacing: 4
+                            anchors.leftMargin: 8
+                            anchors.rightMargin: 8
+                            spacing: 5
                             Kirigami.Icon {
                                 source: "utilities-terminal"
                                 Layout.preferredWidth: 13
@@ -633,7 +623,7 @@ PlasmoidItem {
                             Item { Layout.fillWidth: true }
                             Text {
                                 text: (container.monitorData.services.tmux_sessions > 0) ? (container.monitorData.services.tmux_sessions + " Active") : "No Session"
-                                color: (container.monitorData.services.tmux_sessions > 0) ? "#00e5ff" : "#78909c"
+                                color: (container.monitorData.services.tmux_sessions > 0) ? "#00e676" : "#78909c"
                                 font.pixelSize: 8
                                 font.bold: true
                             }
