@@ -79,12 +79,25 @@ class MetricCollector:
 
     def get_sdcard(self):
         sd_path = '/run/media/deck/SDcard'
-        if os.path.exists(sd_path) and os.path.ismount(sd_path):
+        if not (os.path.exists(sd_path) and os.path.ismount(sd_path)):
+            sd_path = None
+            try:
+                with open('/proc/mounts', 'r') as f:
+                    for line in f:
+                        parts = line.strip().split()
+                        if len(parts) >= 2 and parts[0].startswith('/dev/mmcblk0'):
+                            sd_path = parts[1].replace('\\040', ' ')
+                            break
+            except Exception:
+                pass
+
+        if sd_path and os.path.exists(sd_path) and os.path.ismount(sd_path):
             try:
                 total, used, free = shutil.disk_usage(sd_path)
                 pct = round((used / total) * 100.0, 1)
                 return {
                     'mounted': True,
+                    'mount': sd_path,
                     'percent': pct,
                     'used_gb': round(used / (1024**3), 1),
                     'total_gb': round(total / (1024**3), 1),
@@ -99,6 +112,71 @@ class MetricCollector:
             'total_gb': 0.0,
             'free_gb': 0.0
         }
+
+    def get_external_drives(self):
+        drives = []
+        seen_mounts = set()
+        labels = {}
+        if os.path.exists('/dev/disk/by-label'):
+            try:
+                for lbl in os.listdir('/dev/disk/by-label'):
+                    full_p = os.path.join('/dev/disk/by-label', lbl)
+                    if os.path.islink(full_p):
+                        real_p = os.path.realpath(full_p)
+                        labels[real_p] = lbl.replace('\\x20', ' ')
+            except Exception:
+                pass
+
+        try:
+            with open('/proc/mounts', 'r') as f:
+                for line in f:
+                    parts = line.strip().split()
+                    if len(parts) < 3:
+                        continue
+                    src = parts[0].replace('\\040', ' ')
+                    target = parts[1].replace('\\040', ' ')
+                    fstype = parts[2]
+
+                    if fstype in ('tmpfs', 'devtmpfs', 'proc', 'sysfs', 'fuse.rclone', 'portal',
+                                  'cgroup', 'cgroup2', 'overlay', 'autofs', 'fusectl', 'securityfs',
+                                  'pstore', 'bpf', 'tracefs', 'debugfs', 'hugetlbfs', 'mqueue', 'devpts'):
+                        continue
+
+                    if src.startswith('/dev/nvme0n1') or src.startswith('/dev/mmcblk0') or src.startswith('/dev/zram') or src == 'none':
+                        continue
+
+                    if target in ('/', '/home', '/var', '/opt', '/root', '/srv', '/nix', '/efi', '/esp') or target.startswith('/run/media/deck/SDcard'):
+                        continue
+
+                    is_ext = False
+                    if src.startswith('/dev/sd') or (src.startswith('/dev/nvme') and not src.startswith('/dev/nvme0n1')):
+                        is_ext = True
+                    elif target.startswith('/run/media/') or target.startswith('/media/'):
+                        is_ext = True
+
+                    if is_ext and target not in seen_mounts and os.path.exists(target) and os.path.ismount(target):
+                        seen_mounts.add(target)
+                        try:
+                            total, used, free = shutil.disk_usage(target)
+                            if total > 0:
+                                pct = round((used / total) * 100.0, 1)
+                                real_src = os.path.realpath(src)
+                                drive_name = labels.get(real_src) or os.path.basename(target.rstrip('/'))
+                                if not drive_name or drive_name in ('deck', 'media'):
+                                    drive_name = 'External'
+                                drives.append({
+                                    'name': drive_name,
+                                    'mount': target,
+                                    'percent': pct,
+                                    'used_gb': round(used / (1024**3), 1),
+                                    'total_gb': round(total / (1024**3), 1),
+                                    'free_gb': round(free / (1024**3), 1)
+                                })
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+        return drives
 
     def get_battery(self):
         pct = 0
@@ -269,6 +347,7 @@ class MetricCollector:
             'memory': self.get_memory(),
             'storage': self.get_storage(),
             'sdcard': self.get_sdcard(),
+            'external_drives': self.get_external_drives(),
             'battery': self.get_battery(),
             'temp': self.get_temperature(),
             'wifi': self.get_wifi(),

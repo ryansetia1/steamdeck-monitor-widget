@@ -33,6 +33,7 @@ PlasmoidItem {
             memory: { percent: 0, used_gb: 0, total_gb: 0 },
             storage: { percent: 0, used_gb: 0, total_gb: 0, free_gb: 0 },
             sdcard: { mounted: false, percent: 0, used_gb: 0, total_gb: 0, free_gb: 0 },
+            external_drives: [],
             battery: { percent: 0, status: "Unknown", health: "N/A", is_plugged: false, is_charging: false, charge_label: "Discharging" },
             temp: "N/A",
             wifi: { name: "Disconnected", is_tethering: false, icon: "network-wireless-disconnected-symbolic", connected: false },
@@ -390,6 +391,72 @@ PlasmoidItem {
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: container.monitorData.sdcard.mounted ? (Math.round(container.monitorData.sdcard.free_gb || 0) + "G free") : ""
+                                    color: "#eceff1"
+                                    font.pixelSize: root.baseFontSize - 3
+                                    font.bold: true
+                                }
+                            }
+                        }
+                    }
+
+                    // --- EXTERNAL STORAGE DRIVES (Dynamically rendered if connected) ---
+                    Repeater {
+                        model: (container.monitorData.external_drives && container.monitorData.external_drives.length > 0) ? container.monitorData.external_drives : 0
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 4
+
+                                Kirigami.Icon {
+                                    source: "drive-removable-media-usb"
+                                    Layout.preferredWidth: root.baseFontSize
+                                    Layout.preferredHeight: root.baseFontSize
+                                }
+                                Text {
+                                    text: modelData.name || "External Drive"
+                                    color: "#cfd8dc"
+                                    font.pixelSize: root.baseFontSize - 1
+                                    font.bold: true
+                                    elide: Text.ElideRight
+                                    Layout.maximumWidth: parent.width * 0.7
+                                }
+                                Item { Layout.fillWidth: true }
+                                Text {
+                                    text: (modelData.percent || 0).toFixed(1) + "%"
+                                    color: "#ffffff"
+                                    font.pixelSize: root.baseFontSize - 1
+                                    font.bold: true
+                                }
+                            }
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 6
+                                radius: 3
+                                color: "#242936"
+                                Rectangle {
+                                    width: Math.max(0, Math.min(parent.width, parent.width * ((modelData.percent || 0) / 100.0)))
+                                    height: parent.height
+                                    radius: 3
+                                    color: container.getBarColor(modelData.percent || 0)
+                                    Behavior on width { NumberAnimation { duration: 250 } }
+                                }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Text {
+                                    text: (modelData.used_gb >= 1000 ? (modelData.used_gb/1024).toFixed(1) + "T" : Math.round(modelData.used_gb || 0) + "G") + "/" + (modelData.total_gb >= 1000 ? (modelData.total_gb/1024).toFixed(1) + "T" : Math.round(modelData.total_gb || 0) + "G")
+                                    color: "#90a4ae"
+                                    font.pixelSize: root.baseFontSize - 3
+                                }
+                                Item { Layout.fillWidth: true }
+                                Text {
+                                    text: (modelData.free_gb >= 1000 ? (modelData.free_gb/1024).toFixed(1) + "T free" : Math.round(modelData.free_gb || 0) + "G free")
                                     color: "#eceff1"
                                     font.pixelSize: root.baseFontSize - 3
                                     font.bold: true
