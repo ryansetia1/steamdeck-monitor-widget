@@ -80,6 +80,24 @@ PlasmoidItem {
             return "#00e676";
         }
 
+        function getHealthColor(healthStr) {
+            if (!healthStr || healthStr === "N/A") return "#90a4ae";
+            var val = parseFloat(healthStr);
+            if (isNaN(val)) return "#90a4ae";
+            if (val >= 80) return "#00e676";
+            if (val >= 60) return "#ffa726";
+            return "#ff5252";
+        }
+
+        function getPingColor(pingStr) {
+            if (!pingStr || pingStr === "Offline" || pingStr === "...") return "#ff5252";
+            var val = parseFloat(pingStr);
+            if (isNaN(val)) return "#ff5252";
+            if (val <= 80) return "#00e676";
+            if (val <= 150) return "#ffa726";
+            return "#ff5252";
+        }
+
         Timer {
             id: pollTimer
             interval: 2000
@@ -145,7 +163,7 @@ PlasmoidItem {
                                 width: 5
                                 height: 5
                                 radius: 2.5
-                                color: (container.monitorData.ping && container.monitorData.ping !== "Offline") ? "#00e5ff" : "#ff5252"
+                                color: container.getPingColor(container.monitorData.ping)
                             }
                             Text {
                                 text: container.monitorData.ping ? container.monitorData.ping : "..."
@@ -490,7 +508,7 @@ PlasmoidItem {
                             }
                             Text {
                                 text: container.monitorData.battery.health || "N/A"
-                                color: "#4dd0e1"
+                                color: container.getHealthColor(container.monitorData.battery.health)
                                 font.pixelSize: root.baseFontSize + 3
                                 font.bold: true
                                 Layout.alignment: Qt.AlignHCenter
