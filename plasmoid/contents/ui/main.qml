@@ -71,6 +71,15 @@ PlasmoidItem {
             return "#00e676";
         }
 
+        function getTempColor(tempStr) {
+            if (!tempStr || tempStr === "N/A") return "#90a4ae";
+            var val = parseFloat(tempStr);
+            if (isNaN(val)) return "#90a4ae";
+            if (val >= 85) return "#ff5252";
+            if (val >= 70) return "#ffa726";
+            return "#00e676";
+        }
+
         Timer {
             id: pollTimer
             interval: 2000
@@ -401,7 +410,7 @@ PlasmoidItem {
                             }
                             Text {
                                 text: container.monitorData.temp || "N/A"
-                                color: "#ffb74d"
+                                color: container.getTempColor(container.monitorData.temp)
                                 font.pixelSize: root.baseFontSize + 3
                                 font.bold: true
                                 Layout.alignment: Qt.AlignHCenter
