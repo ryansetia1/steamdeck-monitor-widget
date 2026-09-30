@@ -535,10 +535,13 @@ PlasmoidItem {
                                 anchors.leftMargin: 8
                                 anchors.rightMargin: 8
                                 spacing: 5
-                                Kirigami.Icon {
-                                    source: "folder-dropbox"
+                                Image {
+                                    source: Qt.resolvedUrl("../icons/dropbox.svg")
                                     Layout.preferredWidth: 13
                                     Layout.preferredHeight: 13
+                                    sourceSize.width: 26
+                                    sourceSize.height: 26
+                                    fillMode: Image.PreserveAspectFit
                                 }
                                 Text { text: "Dropbox"; color: "#cfd8dc"; font.pixelSize: 9; font.bold: true }
                                 Item { Layout.fillWidth: true }
