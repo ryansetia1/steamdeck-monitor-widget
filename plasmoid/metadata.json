@@ -1,0 +1,18 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "deck@steamdeck",
+                "Name": "Ryan"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "Monitor CPU, RAM, Storage, Temp, Battery Health, Syncthing, Dropbox, Rclone, Tmux, Tailscale & Ping",
+        "Icon": "utilities-system-monitor",
+        "Id": "org.ryan.deckmonitor",
+        "License": "GPL-2.0+",
+        "Name": "Deck Monitor"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
