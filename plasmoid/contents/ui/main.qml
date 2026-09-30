@@ -99,11 +99,14 @@ PlasmoidItem {
                     Layout.fillWidth: true
                     spacing: 8
 
-                    Rectangle {
-                        width: 8
-                        height: 8
-                        radius: 4
-                        color: container.isConnected ? "#00e676" : "#ff5252"
+                    Image {
+                        source: Qt.resolvedUrl("../icons/steamdeck.svg")
+                        Layout.preferredWidth: root.baseFontSize + 6
+                        Layout.preferredHeight: root.baseFontSize + 6
+                        sourceSize.width: 48
+                        sourceSize.height: 48
+                        fillMode: Image.PreserveAspectFit
+                        opacity: container.isConnected ? 1.0 : 0.4
                     }
 
                     Text {
