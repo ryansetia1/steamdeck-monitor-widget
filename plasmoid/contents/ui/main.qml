@@ -63,6 +63,12 @@ PlasmoidItem {
             xhr.send();
         }
 
+        function getBarColor(pct) {
+            if (pct >= 85) return "#ff5252";
+            if (pct >= 70) return "#ffa726";
+            return "#00e676";
+        }
+
         Timer {
             id: pollTimer
             interval: 2000
@@ -210,7 +216,7 @@ PlasmoidItem {
                                 width: Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.cpu_percent || 0) / 100.0)))
                                 height: parent.height
                                 radius: 3
-                                color: (container.monitorData.cpu_percent > 85) ? "#ff5252" : ((container.monitorData.cpu_percent > 65) ? "#ffa726" : "#29b6f6")
+                                color: container.getBarColor(container.monitorData.cpu_percent || 0)
                                 Behavior on width { NumberAnimation { duration: 250 } }
                             }
                         }
@@ -242,7 +248,7 @@ PlasmoidItem {
                                 width: Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.memory.percent || 0) / 100.0)))
                                 height: parent.height
                                 radius: 3
-                                color: (container.monitorData.memory.percent > 85) ? "#ff5252" : "#ab47bc"
+                                color: container.getBarColor(container.monitorData.memory.percent || 0)
                                 Behavior on width { NumberAnimation { duration: 250 } }
                             }
                         }
@@ -280,7 +286,7 @@ PlasmoidItem {
                                     width: Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.storage.percent || 0) / 100.0)))
                                     height: parent.height
                                     radius: 3
-                                    color: (container.monitorData.storage.percent > 90) ? "#ff5252" : ((container.monitorData.storage.percent > 75) ? "#ffa726" : "#26a69a")
+                                    color: container.getBarColor(container.monitorData.storage.percent || 0)
                                     Behavior on width { NumberAnimation { duration: 250 } }
                                 }
                             }
@@ -329,7 +335,7 @@ PlasmoidItem {
                                     width: container.monitorData.sdcard.mounted ? Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.sdcard.percent || 0) / 100.0))) : 0
                                     height: parent.height
                                     radius: 3
-                                    color: (container.monitorData.sdcard.percent > 90) ? "#ff5252" : ((container.monitorData.sdcard.percent > 75) ? "#ff9800" : "#ffb74d")
+                                    color: container.getBarColor(container.monitorData.sdcard.percent || 0)
                                     Behavior on width { NumberAnimation { duration: 250 } }
                                 }
                             }
