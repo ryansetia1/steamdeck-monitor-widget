@@ -32,6 +32,16 @@ curl --fail --silent --show-error http://127.0.0.1:19842/status
 
 If it fails, report that the widget daemon is unavailable. Do not restart it automatically. A user who wants to repair it can inspect `systemctl --user status deck-monitor.service` and choose whether to restart it.
 
+## Remote access through Tailscale
+
+The daemon intentionally binds to loopback only. An agent on another device must use the bundled helper's Tailscale mode:
+
+```bash
+python3 scripts/read_status.py --tailscale-host <deck-hostname>
+```
+
+The helper accepts only an online peer returned by `tailscale status --json`, connects to its verified Tailscale IP, and runs a loopback-only request over SSH. It refuses to contact a normal LAN or public address. Before using it, configure Tailscale on both devices, enable and authenticate SSH access to the Steam Deck, and establish a trusted host key plus key-based login for the `deck` account. No widget configuration or port-forwarding is required.
+
 ## Cross-agent installation
 
-The directory is self-contained and uses no Codex-specific instruction syntax. Install it by placing the whole directory in the agent product's configured skills directory, preserving the relative `scripts/` and `references/` paths. The host running the agent must be the Steam Deck itself, or must have a deliberate, authenticated route to its local-only endpoint; do not expose port `19842` publicly just to make the skill work remotely.
+The directory is self-contained and uses no Codex-specific instruction syntax. Install it by placing the whole directory in the agent product's configured skills directory, preserving the relative `scripts/` and `references/` paths. The host running the agent must be the Steam Deck itself or use the verified Tailscale mode above; do not expose port `19842` publicly just to make the skill work remotely.

@@ -17,6 +17,18 @@ python3 scripts/read_status.py
 
 Use `--json` when the task needs every field or values for another program. The helper fails clearly when the daemon is unavailable, the response is malformed, or the cache is stale. Do not start, restart, or modify `deck-monitor.service` unless the user explicitly asks.
 
+## Read an active Steam Deck over Tailscale
+
+For another device, use the helper only with `--tailscale-host`:
+
+```bash
+python3 scripts/read_status.py --tailscale-host steamdeck
+```
+
+This mode first verifies that the calling device is connected to Tailscale, finds the named peer in local Tailscale status, and requires that peer to be online. It then uses non-interactive SSH to ask the Steam Deck itself for `127.0.0.1:19842/status`; it never sends the widget port over the LAN or exposes it to the tailnet. The caller must already have a trusted SSH host key and key-based access to the Steam Deck's `deck` account. Use `--ssh-user` only when the Deck uses a different account.
+
+If any of the Tailscale, online-peer, SSH, daemon, or fresh-data checks fail, stop and report the unavailable condition; do not fall back to a public, LAN, or arbitrary remote HTTP endpoint.
+
 ## Interpret and report
 
 - Identify the result as a point-in-time reading and include its local timestamp when it is useful.
