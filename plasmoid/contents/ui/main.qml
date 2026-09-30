@@ -159,7 +159,7 @@ PlasmoidItem {
                         spacing: 6
 
                         Text {
-                            text: "Wi-Fi"
+                            text: (container.monitorData.wifi && container.monitorData.wifi.is_tethering) ? "Hotspot" : "Wi-Fi"
                             color: "#cfd8dc"
                             font.pixelSize: root.baseFontSize
                             font.bold: true
@@ -167,13 +167,21 @@ PlasmoidItem {
 
                         Item { Layout.fillWidth: true }
 
-                        Text {
-                            text: (container.monitorData.wifi && container.monitorData.wifi !== "Disconnected") ? ("📶 " + container.monitorData.wifi) : "Offline"
-                            color: (container.monitorData.wifi && container.monitorData.wifi !== "Disconnected") ? "#ffffff" : "#ef5350"
-                            font.pixelSize: root.baseFontSize
-                            font.bold: true
-                            elide: Text.ElideRight
-                            Layout.maximumWidth: parent.width - 60
+                        RowLayout {
+                            spacing: 5
+                            Kirigami.Icon {
+                                source: (container.monitorData.wifi && container.monitorData.wifi.icon) ? container.monitorData.wifi.icon : "network-wireless-symbolic"
+                                Layout.preferredWidth: root.baseFontSize + 2
+                                Layout.preferredHeight: root.baseFontSize + 2
+                            }
+                            Text {
+                                text: (container.monitorData.wifi && container.monitorData.wifi.name) ? container.monitorData.wifi.name : "Offline"
+                                color: (container.monitorData.wifi && container.monitorData.wifi.connected) ? "#ffffff" : "#ef5350"
+                                font.pixelSize: root.baseFontSize
+                                font.bold: true
+                                elide: Text.ElideRight
+                                Layout.maximumWidth: parent.width - 80
+                            }
                         }
                     }
                 }

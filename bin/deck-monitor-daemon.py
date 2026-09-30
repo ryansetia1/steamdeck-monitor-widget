@@ -188,20 +188,41 @@ class MetricCollector:
 
     def get_wifi(self):
         try:
-            ssid = subprocess.check_output(['iwgetid', '-r'], stderr=subprocess.DEVNULL).decode().strip()
-            if ssid:
-                return ssid
-        except Exception:
-            pass
-
-        try:
-            out = subprocess.check_output(['nmcli', '-t', '-f', 'ACTIVE,SSID', 'dev', 'wifi'], stderr=subprocess.DEVNULL).decode()
+            out = subprocess.check_output(['nmcli', '-t', '-f', 'DEVICE,TYPE,NAME', 'c', 'show', '--active'], stderr=subprocess.DEVNULL).decode()
             for line in out.splitlines():
-                if line.startswith('yes:'):
-                    return line.split('yes:')[1].strip()
+                parts = line.strip().split(':')
+                if len(parts) >= 3:
+                    dev, conn_type, conn_name = parts[0], parts[1], parts[2]
+                    if conn_type in ('802-11-wireless', 'wifi', 'ethernet', 'bluetooth', 'gsm', 'cdma'):
+                        is_tethering = False
+                        if conn_type in ('bluetooth', 'gsm', 'cdma') or 'usb' in dev.lower() or 'rndis' in dev.lower():
+                            is_tethering = True
+                        else:
+                            name_lower = conn_name.lower()
+                            keywords = ['hotspot', 'tether', 'iphone', 'android', 'galaxy', 'pixel', 'redmi', 'xiaomi', 'poco', 'oppo', 'vivo', 'realme']
+                            if any(kw in name_lower for kw in keywords):
+                                is_tethering = True
+                            else:
+                                try:
+                                    dev_out = subprocess.check_output(['nmcli', '-t', '-f', 'GENERAL.METERED', 'dev', 'show', dev], stderr=subprocess.DEVNULL).decode()
+                                    if 'yes' in dev_out.lower():
+                                        is_tethering = True
+                                except Exception:
+                                    pass
+                        return {
+                            'name': conn_name,
+                            'is_tethering': is_tethering,
+                            'icon': 'network-wireless-hotspot-symbolic' if is_tethering else 'network-wireless-symbolic',
+                            'connected': True
+                        }
         except Exception:
             pass
-        return "Disconnected"
+        return {
+            'name': 'Disconnected',
+            'is_tethering': False,
+            'icon': 'network-wireless-disconnected-symbolic',
+            'connected': False
+        }
 
     def get_services(self):
         syncthing = subprocess.call(['pgrep', '-x', 'syncthing'], stdout=subprocess.DEVNULL) == 0
