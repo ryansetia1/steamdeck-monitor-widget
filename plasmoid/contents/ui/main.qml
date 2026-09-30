@@ -7,6 +7,7 @@ import org.kde.kirigami as Kirigami
 PlasmoidItem {
     id: root
 
+    Plasmoid.backgroundHints: "NoBackground"
     preferredRepresentation: fullRepresentation
     implicitWidth: 320
     implicitHeight: 460
