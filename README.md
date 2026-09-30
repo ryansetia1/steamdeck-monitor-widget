@@ -1,37 +1,62 @@
 # 🎮 Steam Deck Desktop Monitor Widget
 
-A lightweight, modern, and comprehensive desktop monitoring widget designed specifically for the **Steam Deck** running **KDE Plasma 6**.
+<p align="center">
+  <img src="assets/preview.png" alt="Steam Deck Monitor Widget Preview" width="360" />
+</p>
 
-Built with native QML/Plasma and a zero-dependency Python background daemon consuming less than 10MB of RAM.
+<p align="center">
+  A sleek, lightweight, and comprehensive desktop monitoring widget designed specifically for the <b>Steam Deck</b> running <b>KDE Plasma 6</b>.
+  <br />
+  Built with native QML and an ultra-lightweight zero-dependency Python background daemon (<10MB RAM).
+</p>
 
 ---
 
-## ⚡ Features Monitored
+## 🌟 Key Highlights & Philosophy
 
-- **Hardware & Resources**:
-  - **CPU Usage**: Real-time percent with dynamic color-changing progress bar (Blue → Orange → Red).
-  - **RAM Usage**: Used vs. Total GB (e.g. `4.5 / 14.5 GB`), percent, and progress bar.
-  - **Internal Storage**: `/home` disk space usage with visual progress bar, used/total GB, and remaining free space.
-  - **MicroSD Card Storage**: `/run/media/deck/SDcard` disk space usage with visual progress bar and free space (auto-detects unmounted state).
-- **Thermals & Battery**:
-  - **APU Temperature**: Real-time Steam Deck APU temperature (via AMDGPU hwmon).
-  - **Battery Percentage & Charging State**: Real-time level with prominent `⚡` icon and dynamic `CHARGING` / `PLUGGED IN` / `DISCHARGING` status.
-  - **Battery Health**: Accurate health calculation (`charge_full` / `charge_full_design`).
-- **Network & Connectivity**:
-  - **Connected Wi-Fi**: Active network SSID display with offline detection.
-  - **Ping Latency**: Ping time in ms to global DNS (`1.1.1.1`), with automatic offline detection and responsive layout.
-  - **Tailscale**: VPN mesh status badge (`ONLINE` / `OFF`).
-- **Background Services**:
-  - **Syncthing**: Sync daemon status (`ACTIVE` / `OFF`).
-  - **Dropbox**: File sync status (`ACTIVE` / `OFF`).
-  - **Rclone (Google Drive)**: Cloud mount service status (`ACTIVE` / `OFF`).
-  - **Tmux**: Active session counter (`X Active` / `No Session`).
+- **Unified "Quick Skimming" Visual Language**:
+  - With a single glance, **All Green = 100% Safe & Healthy**.
+  - Dynamic threshold color shifting: **Green** (Safe/Optimal) $\rightarrow$ **Orange** (Moderate/Warm) $\rightarrow$ **Red** (High/Critical).
+- **Plug-and-Play External Drives**:
+  - Automatically detects external USB drives, SSDs, and hard drives plugged directly or via USB-C Dock.
+  - Displays partition labels, usage percent, free space, and dynamically disappears upon unmounting.
+- **Smart Wi-Fi & Hotspot Detection**:
+  - Clean monochromatic wireless indicators. Automatically switches to a dedicated **Hotspot icon** when tethered to mobile devices (Android/iPhone).
+- **Clean Minimalist Design**:
+  - Official Steam Deck branding with connection status indicator.
+  - Borderless APU temperature and battery gauges with subtle vertical separator lines.
+  - Full appearance customization via KDE Plasma settings (font size slider with live preview).
+
+---
+
+## ⚡ Monitored Metrics
+
+### 🖥️ Hardware & Storage
+- **CPU Usage**: Real-time percent with dynamic color progress bar.
+- **RAM Usage**: Used vs. Total GB (e.g. `5.5 / 14.5 GB`), percent, and progress bar.
+- **Internal Storage**: `/home` partition usage, used/total GB, and free space.
+- **MicroSD Card**: Storage status with inserted/unmounted detection.
+- **External Storage**: Dynamically displayed upon connection with automatic `GB` / `TB` unit scaling.
+
+### 🌡️ Thermals & Battery
+- **APU Temperature**: Real-time sensor readout calibrated for Steam Deck Zen 2 APU thermal thresholds (Green `<70°C`, Orange `70-84°C`, Red `≥85°C`).
+- **Battery & Charging**: Accurate percentage, charging state (`CHARGING` / `PLUGGED IN` / `DISCHARGING`), and `⚡` indicator.
+- **Battery Health**: True health percentage based on battery design capacity (`charge_full` / `charge_full_design`).
+
+### 🌐 Network & Services
+- **Wi-Fi / Hotspot**: Active SSID with smart tethering detection.
+- **Ping Latency**: Millisecond ping to global DNS (`1.1.1.1`) with dynamic color status dot (Green `≤80ms`, Orange `81-150ms`, Red `>150ms / Offline`).
+- **Syncthing**: Sync daemon active state.
+- **Dropbox**: File sync status with official icon.
+- **Rclone (Google Drive)**: Cloud mount daemon state.
+- **Tailscale**: VPN mesh node status (`ONLINE` / `OFF`).
+- **Tmux Sessions**: Real-time counter of active background terminal sessions.
 
 ---
 
 ## 🚀 Quick Installation
 
-Clone this repository and run the install script:
+Open a terminal on your Steam Deck Desktop Mode and run:
 
 ```bash
 git clone https://github.com/ryansetia1/steamdeck-monitor-widget.git
@@ -40,39 +65,36 @@ chmod +x install.sh
 ./install.sh
 ```
 
-The script will:
-1. Copy the background daemon to `~/.local/bin/deck-monitor-daemon.py`.
-2. Register and start the user systemd service (`deck-monitor.service`).
-3. Install the Plasma 6 plasmoid to `~/.local/share/plasma/plasmoids/org.ryan.deckmonitor`.
-4. Automatically append the widget to your current desktop screen.
+### What the installer does:
+1. Installs the lightweight background daemon to `~/.local/bin/deck-monitor-daemon.py`.
+2. Sets up and starts the systemd user service (`deck-monitor.service`).
+3. Installs the Plasma 6 plasmoid to `~/.local/share/plasma/plasmoids/org.ryan.deckmonitor`.
+4. Automatically attaches the widget to your desktop.
 
 ---
 
-## 🛠️ Manual Controls
+## 🛠️ Management & Controls
 
-### Service Management
+### Service Commands
 ```bash
-# Check service status
+# Check status
 systemctl --user status deck-monitor.service
 
-# Restart service
+# Restart daemon
 systemctl --user restart deck-monitor.service
 
-# Stop service
-systemctl --user stop deck-monitor.service
+# View live daemon metrics (JSON)
+curl -s http://127.0.0.1:19842/status | python3 -m json.tool
 ```
 
-### Inspect Metrics Endpoint
-The background daemon serves a fast JSON endpoint on localhost:
-```bash
-curl -s http://127.0.0.1:19842/status
-```
+### Appearance Settings
+Right-click the widget on your desktop $\rightarrow$ select **Configure Deck Monitor...** $\rightarrow$ adjust the **Font Size** slider to scale the widget size to your preference.
 
 ---
 
 ## 🗑️ Uninstallation
 
-To cleanly remove the widget and background service:
+To cleanly remove the widget, plasmoid, and systemd daemon:
 
 ```bash
 ./uninstall.sh
@@ -81,4 +103,4 @@ To cleanly remove the widget and background service:
 ---
 
 ## 📜 License
-MIT License
+MIT License © [ryansetia1](https://github.com/ryansetia1)
