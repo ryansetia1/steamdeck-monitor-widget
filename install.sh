@@ -20,11 +20,14 @@ echo "[✓] Systemd service enabled and started"
 
 # 3. Install Plasma 6 Plasmoid
 PLASMOID_DIR="$HOME/.local/share/plasma/plasmoids/org.ryan.deckmonitor"
-mkdir -p "$PLASMOID_DIR/contents/ui" "$PLASMOID_DIR/contents/icons"
+mkdir -p "$PLASMOID_DIR/contents/ui" "$PLASMOID_DIR/contents/icons" "$PLASMOID_DIR/contents/config"
 cp "$SCRIPT_DIR/plasmoid/metadata.json" "$PLASMOID_DIR/"
-cp "$SCRIPT_DIR/plasmoid/contents/ui/main.qml" "$PLASMOID_DIR/contents/ui/"
+cp -r "$SCRIPT_DIR/plasmoid/contents/ui/"* "$PLASMOID_DIR/contents/ui/"
 if [ -d "$SCRIPT_DIR/plasmoid/contents/icons" ]; then
     cp -r "$SCRIPT_DIR/plasmoid/contents/icons/"* "$PLASMOID_DIR/contents/icons/"
+fi
+if [ -d "$SCRIPT_DIR/plasmoid/contents/config" ]; then
+    cp -r "$SCRIPT_DIR/plasmoid/contents/config/"* "$PLASMOID_DIR/contents/config/"
 fi
 echo "[✓] Plasmoid installed to $PLASMOID_DIR"
 

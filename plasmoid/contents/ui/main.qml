@@ -9,13 +9,15 @@ PlasmoidItem {
 
     Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground | PlasmaCore.Types.ConfigurableBackground
 
+    property int baseFontSize: Plasmoid.configuration.fontSizeScale || 12
+
     preferredRepresentation: fullRepresentation
-    implicitWidth: 320
-    implicitHeight: 380
-    Layout.minimumWidth: 270
+    implicitWidth: 320 + (baseFontSize - 12) * 15
+    implicitHeight: 390 + (baseFontSize - 12) * 16
+    Layout.minimumWidth: 280
     Layout.minimumHeight: 350
-    Layout.preferredWidth: 330
-    Layout.preferredHeight: 390
+    Layout.preferredWidth: implicitWidth
+    Layout.preferredHeight: implicitHeight
 
     Component.onCompleted: {
         Plasmoid.userBackgroundHints = PlasmaCore.Types.NoBackground;
@@ -107,7 +109,7 @@ PlasmoidItem {
                     Text {
                         text: "DECK MONITOR"
                         color: "#ffffff"
-                        font.pixelSize: 12
+                        font.pixelSize: root.baseFontSize + 2
                         font.bold: true
                         font.letterSpacing: 1.2
                     }
@@ -118,14 +120,14 @@ PlasmoidItem {
                     Rectangle {
                         color: "#212532"
                         radius: 8
-                        height: 22
+                        height: root.baseFontSize + 12
                         Layout.preferredWidth: pingRow.implicitWidth + 12
-                        Layout.maximumWidth: 100
+                        Layout.maximumWidth: 120
 
                         RowLayout {
                             id: pingRow
                             anchors.centerIn: parent
-                            spacing: 4
+                            spacing: 5
 
                             Rectangle {
                                 width: 5
@@ -135,8 +137,8 @@ PlasmoidItem {
                             }
                             Text {
                                 text: container.monitorData.ping ? container.monitorData.ping : "..."
-                                color: "#b0bec5"
-                                font.pixelSize: 10
+                                color: "#cfd8dc"
+                                font.pixelSize: root.baseFontSize - 1
                                 font.bold: true
                             }
                         }
@@ -146,11 +148,9 @@ PlasmoidItem {
                 // --- WI-FI STATUS BAR ---
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 24
+                    height: root.baseFontSize + 14
                     radius: 8
-                    color: "#1d212c"
-                    border.color: (container.monitorData.wifi && container.monitorData.wifi !== "Disconnected") ? "#293245" : "#3e2727"
-                    border.width: 1
+                    color: "#1e222d"
 
                     RowLayout {
                         anchors.fill: parent
@@ -160,8 +160,8 @@ PlasmoidItem {
 
                         Text {
                             text: "Wi-Fi"
-                            color: "#80cbc4"
-                            font.pixelSize: 10
+                            color: "#cfd8dc"
+                            font.pixelSize: root.baseFontSize
                             font.bold: true
                         }
 
@@ -169,8 +169,8 @@ PlasmoidItem {
 
                         Text {
                             text: (container.monitorData.wifi && container.monitorData.wifi !== "Disconnected") ? ("📶 " + container.monitorData.wifi) : "Offline"
-                            color: (container.monitorData.wifi && container.monitorData.wifi !== "Disconnected") ? "#e0f2f1" : "#ef5350"
-                            font.pixelSize: 10
+                            color: (container.monitorData.wifi && container.monitorData.wifi !== "Disconnected") ? "#ffffff" : "#ef5350"
+                            font.pixelSize: root.baseFontSize
                             font.bold: true
                             elide: Text.ElideRight
                             Layout.maximumWidth: parent.width - 60
@@ -197,12 +197,12 @@ PlasmoidItem {
 
                         RowLayout {
                             Layout.fillWidth: true
-                            Text { text: "CPU"; color: "#90caf9"; font.pixelSize: 11; font.bold: true }
+                            Text { text: "CPU"; color: "#cfd8dc"; font.pixelSize: root.baseFontSize; font.bold: true }
                             Item { Layout.fillWidth: true }
                             Text {
                                 text: (container.monitorData.cpu_percent || 0).toFixed(1) + "%"
                                 color: "#ffffff"
-                                font.pixelSize: 11
+                                font.pixelSize: root.baseFontSize
                                 font.bold: true
                             }
                         }
@@ -229,12 +229,12 @@ PlasmoidItem {
 
                         RowLayout {
                             Layout.fillWidth: true
-                            Text { text: "RAM"; color: "#ce93d8"; font.pixelSize: 11; font.bold: true }
+                            Text { text: "RAM"; color: "#cfd8dc"; font.pixelSize: root.baseFontSize; font.bold: true }
                             Item { Layout.fillWidth: true }
                             Text {
                                 text: (container.monitorData.memory.used_gb || 0) + " / " + (container.monitorData.memory.total_gb || 0) + " GB (" + (container.monitorData.memory.percent || 0) + "%)"
                                 color: "#ffffff"
-                                font.pixelSize: 11
+                                font.pixelSize: root.baseFontSize
                                 font.bold: true
                             }
                         }
@@ -267,12 +267,12 @@ PlasmoidItem {
 
                             RowLayout {
                                 Layout.fillWidth: true
-                                Text { text: "Internal (/home)"; color: "#80cbc4"; font.pixelSize: 10; font.bold: true }
+                                Text { text: "Internal (/home)"; color: "#cfd8dc"; font.pixelSize: root.baseFontSize - 1; font.bold: true }
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: (container.monitorData.storage.percent || 0) + "%"
                                     color: "#ffffff"
-                                    font.pixelSize: 10
+                                    font.pixelSize: root.baseFontSize - 1
                                     font.bold: true
                                 }
                             }
@@ -295,14 +295,14 @@ PlasmoidItem {
                                 Layout.fillWidth: true
                                 Text {
                                     text: (container.monitorData.storage.used_gb || 0) + " / " + (container.monitorData.storage.total_gb || 0) + " GB"
-                                    color: "#78909c"
-                                    font.pixelSize: 9
+                                    color: "#90a4ae"
+                                    font.pixelSize: root.baseFontSize - 2
                                 }
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: (container.monitorData.storage.free_gb || 0) + " GB free"
-                                    color: "#cfd8dc"
-                                    font.pixelSize: 9
+                                    color: "#eceff1"
+                                    font.pixelSize: root.baseFontSize - 2
                                     font.bold: true
                                 }
                             }
@@ -316,12 +316,12 @@ PlasmoidItem {
 
                             RowLayout {
                                 Layout.fillWidth: true
-                                Text { text: "MicroSD Card"; color: "#ffb74d"; font.pixelSize: 10; font.bold: true }
+                                Text { text: "MicroSD Card"; color: "#cfd8dc"; font.pixelSize: root.baseFontSize - 1; font.bold: true }
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: container.monitorData.sdcard.mounted ? ((container.monitorData.sdcard.percent || 0) + "%") : "N/A"
-                                    color: container.monitorData.sdcard.mounted ? "#ffffff" : "#78909c"
-                                    font.pixelSize: 10
+                                    color: container.monitorData.sdcard.mounted ? "#ffffff" : "#90a4ae"
+                                    font.pixelSize: root.baseFontSize - 1
                                     font.bold: true
                                 }
                             }
@@ -344,14 +344,14 @@ PlasmoidItem {
                                 Layout.fillWidth: true
                                 Text {
                                     text: container.monitorData.sdcard.mounted ? ((container.monitorData.sdcard.used_gb || 0) + " / " + (container.monitorData.sdcard.total_gb || 0) + " GB") : "Not Inserted"
-                                    color: "#78909c"
-                                    font.pixelSize: 9
+                                    color: "#90a4ae"
+                                    font.pixelSize: root.baseFontSize - 2
                                 }
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: container.monitorData.sdcard.mounted ? ((container.monitorData.sdcard.free_gb || 0) + " GB free") : ""
-                                    color: "#cfd8dc"
-                                    font.pixelSize: 9
+                                    color: "#eceff1"
+                                    font.pixelSize: root.baseFontSize - 2
                                     font.bold: true
                                 }
                             }
@@ -374,7 +374,7 @@ PlasmoidItem {
                     // Temp Badge
                     Rectangle {
                         Layout.fillWidth: true
-                        height: 50
+                        height: root.baseFontSize + 38
                         radius: 10
                         color: "#1e222d"
 
@@ -384,14 +384,14 @@ PlasmoidItem {
                             Text {
                                 text: "APU TEMP"
                                 color: "#90a4ae"
-                                font.pixelSize: 9
+                                font.pixelSize: root.baseFontSize - 3
                                 font.bold: true
                                 Layout.alignment: Qt.AlignHCenter
                             }
                             Text {
                                 text: container.monitorData.temp || "N/A"
                                 color: "#ffb74d"
-                                font.pixelSize: 13
+                                font.pixelSize: root.baseFontSize + 3
                                 font.bold: true
                                 Layout.alignment: Qt.AlignHCenter
                             }
@@ -401,11 +401,9 @@ PlasmoidItem {
                     // Battery Badge
                     Rectangle {
                         Layout.fillWidth: true
-                        height: 50
+                        height: root.baseFontSize + 38
                         radius: 10
-                        color: container.monitorData.battery.is_plugged ? "#1a2c26" : "#1e222d"
-                        border.color: container.monitorData.battery.is_plugged ? "#2e7d32" : "#2a303d"
-                        border.width: 1
+                        color: "#1e222d"
 
                         ColumnLayout {
                             anchors.centerIn: parent
@@ -413,21 +411,21 @@ PlasmoidItem {
                             Text {
                                 text: "BATTERY"
                                 color: "#90a4ae"
-                                font.pixelSize: 9
+                                font.pixelSize: root.baseFontSize - 3
                                 font.bold: true
                                 Layout.alignment: Qt.AlignHCenter
                             }
                             Text {
                                 text: (container.monitorData.battery.is_plugged ? "⚡ " : "") + (container.monitorData.battery.percent || 0) + "%"
-                                color: container.monitorData.battery.is_plugged ? "#69f0ae" : "#ffffff"
-                                font.pixelSize: 13
+                                color: container.monitorData.battery.is_plugged ? "#00e676" : "#ffffff"
+                                font.pixelSize: root.baseFontSize + 3
                                 font.bold: true
                                 Layout.alignment: Qt.AlignHCenter
                             }
                             Text {
                                 text: container.monitorData.battery.charge_label ? container.monitorData.battery.charge_label.toUpperCase() : "DISCHARGING"
                                 color: container.monitorData.battery.is_plugged ? "#00e676" : "#78909c"
-                                font.pixelSize: 8
+                                font.pixelSize: root.baseFontSize - 3
                                 font.bold: true
                                 Layout.alignment: Qt.AlignHCenter
                             }
@@ -437,7 +435,7 @@ PlasmoidItem {
                     // Battery Health Badge
                     Rectangle {
                         Layout.fillWidth: true
-                        height: 50
+                        height: root.baseFontSize + 38
                         radius: 10
                         color: "#1e222d"
 
@@ -447,21 +445,21 @@ PlasmoidItem {
                             Text {
                                 text: "BAT HEALTH"
                                 color: "#90a4ae"
-                                font.pixelSize: 9
+                                font.pixelSize: root.baseFontSize - 3
                                 font.bold: true
                                 Layout.alignment: Qt.AlignHCenter
                             }
                             Text {
                                 text: container.monitorData.battery.health || "N/A"
                                 color: "#4dd0e1"
-                                font.pixelSize: 13
+                                font.pixelSize: root.baseFontSize + 3
                                 font.bold: true
                                 Layout.alignment: Qt.AlignHCenter
                             }
                             Text {
                                 text: "HEALTH"
                                 color: "#546e7a"
-                                font.pixelSize: 8
+                                font.pixelSize: root.baseFontSize - 3
                                 font.bold: true
                                 Layout.alignment: Qt.AlignHCenter
                             }
@@ -484,7 +482,7 @@ PlasmoidItem {
                     Text {
                         text: "SERVICES"
                         color: "#78909c"
-                        font.pixelSize: 9
+                        font.pixelSize: root.baseFontSize - 2
                         font.bold: true
                         font.letterSpacing: 0.8
                     }
@@ -498,7 +496,7 @@ PlasmoidItem {
                         // Syncthing
                         Rectangle {
                             Layout.fillWidth: true
-                            height: 25
+                            height: root.baseFontSize + 14
                             radius: 8
                             color: "#1e222d"
 
@@ -509,15 +507,15 @@ PlasmoidItem {
                                 spacing: 5
                                 Kirigami.Icon {
                                     source: "syncthing"
-                                    Layout.preferredWidth: 13
-                                    Layout.preferredHeight: 13
+                                    Layout.preferredWidth: root.baseFontSize + 2
+                                    Layout.preferredHeight: root.baseFontSize + 2
                                 }
-                                Text { text: "Syncthing"; color: "#cfd8dc"; font.pixelSize: 9; font.bold: true }
+                                Text { text: "Syncthing"; color: "#cfd8dc"; font.pixelSize: root.baseFontSize - 1; font.bold: true }
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: container.monitorData.services.syncthing ? "ACTIVE" : "OFF"
                                     color: container.monitorData.services.syncthing ? "#00e676" : "#78909c"
-                                    font.pixelSize: 8
+                                    font.pixelSize: root.baseFontSize - 2
                                     font.bold: true
                                 }
                             }
@@ -526,7 +524,7 @@ PlasmoidItem {
                         // Dropbox
                         Rectangle {
                             Layout.fillWidth: true
-                            height: 25
+                            height: root.baseFontSize + 14
                             radius: 8
                             color: "#1e222d"
 
@@ -537,18 +535,18 @@ PlasmoidItem {
                                 spacing: 5
                                 Image {
                                     source: Qt.resolvedUrl("../icons/dropbox.svg")
-                                    Layout.preferredWidth: 13
-                                    Layout.preferredHeight: 13
-                                    sourceSize.width: 26
-                                    sourceSize.height: 26
+                                    Layout.preferredWidth: root.baseFontSize + 2
+                                    Layout.preferredHeight: root.baseFontSize + 2
+                                    sourceSize.width: 32
+                                    sourceSize.height: 32
                                     fillMode: Image.PreserveAspectFit
                                 }
-                                Text { text: "Dropbox"; color: "#cfd8dc"; font.pixelSize: 9; font.bold: true }
+                                Text { text: "Dropbox"; color: "#cfd8dc"; font.pixelSize: root.baseFontSize - 1; font.bold: true }
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: container.monitorData.services.dropbox ? "ACTIVE" : "OFF"
                                     color: container.monitorData.services.dropbox ? "#00e676" : "#78909c"
-                                    font.pixelSize: 8
+                                    font.pixelSize: root.baseFontSize - 2
                                     font.bold: true
                                 }
                             }
@@ -557,7 +555,7 @@ PlasmoidItem {
                         // Rclone
                         Rectangle {
                             Layout.fillWidth: true
-                            height: 25
+                            height: root.baseFontSize + 14
                             radius: 8
                             color: "#1e222d"
 
@@ -568,15 +566,15 @@ PlasmoidItem {
                                 spacing: 5
                                 Kirigami.Icon {
                                     source: "folder-gdrive"
-                                    Layout.preferredWidth: 13
-                                    Layout.preferredHeight: 13
+                                    Layout.preferredWidth: root.baseFontSize + 2
+                                    Layout.preferredHeight: root.baseFontSize + 2
                                 }
-                                Text { text: "Rclone"; color: "#cfd8dc"; font.pixelSize: 9; font.bold: true }
+                                Text { text: "Rclone"; color: "#cfd8dc"; font.pixelSize: root.baseFontSize - 1; font.bold: true }
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: container.monitorData.services.rclone ? "ACTIVE" : "OFF"
                                     color: container.monitorData.services.rclone ? "#00e676" : "#78909c"
-                                    font.pixelSize: 8
+                                    font.pixelSize: root.baseFontSize - 2
                                     font.bold: true
                                 }
                             }
@@ -585,7 +583,7 @@ PlasmoidItem {
                         // Tailscale
                         Rectangle {
                             Layout.fillWidth: true
-                            height: 25
+                            height: root.baseFontSize + 14
                             radius: 8
                             color: "#1e222d"
 
@@ -596,15 +594,15 @@ PlasmoidItem {
                                 spacing: 5
                                 Kirigami.Icon {
                                     source: "network-vpn"
-                                    Layout.preferredWidth: 13
-                                    Layout.preferredHeight: 13
+                                    Layout.preferredWidth: root.baseFontSize + 2
+                                    Layout.preferredHeight: root.baseFontSize + 2
                                 }
-                                Text { text: "Tailscale"; color: "#cfd8dc"; font.pixelSize: 9; font.bold: true }
+                                Text { text: "Tailscale"; color: "#cfd8dc"; font.pixelSize: root.baseFontSize - 1; font.bold: true }
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: container.monitorData.services.tailscale ? "ONLINE" : "OFF"
                                     color: container.monitorData.services.tailscale ? "#00e676" : "#78909c"
-                                    font.pixelSize: 8
+                                    font.pixelSize: root.baseFontSize - 2
                                     font.bold: true
                                 }
                             }
@@ -614,7 +612,7 @@ PlasmoidItem {
                     // Tmux Bar
                     Rectangle {
                         Layout.fillWidth: true
-                        height: 24
+                        height: root.baseFontSize + 14
                         radius: 8
                         color: "#1e222d"
 
@@ -625,15 +623,15 @@ PlasmoidItem {
                             spacing: 5
                             Kirigami.Icon {
                                 source: "utilities-terminal"
-                                Layout.preferredWidth: 13
-                                Layout.preferredHeight: 13
+                                Layout.preferredWidth: root.baseFontSize + 2
+                                Layout.preferredHeight: root.baseFontSize + 2
                             }
-                            Text { text: "Tmux Sessions"; color: "#b0bec5"; font.pixelSize: 9; font.bold: true }
+                            Text { text: "Tmux Sessions"; color: "#cfd8dc"; font.pixelSize: root.baseFontSize - 1; font.bold: true }
                             Item { Layout.fillWidth: true }
                             Text {
                                 text: (container.monitorData.services.tmux_sessions > 0) ? (container.monitorData.services.tmux_sessions + " Active") : "No Session"
                                 color: (container.monitorData.services.tmux_sessions > 0) ? "#00e676" : "#78909c"
-                                font.pixelSize: 8
+                                font.pixelSize: root.baseFontSize - 2
                                 font.bold: true
                             }
                         }
