@@ -1,0 +1,4 @@
+interface:
+  display_name: "Steam Deck Monitor Reader"
+  short_description: "Read live metrics from the local Steam Deck monitor widget"
+  default_prompt: "Read the current Steam Deck monitor widget status and summarize the relevant metrics."
