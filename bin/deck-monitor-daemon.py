@@ -266,33 +266,34 @@ class MetricCollector:
 
     def get_wifi(self):
         try:
-            out = subprocess.check_output(['nmcli', '-t', '-f', 'DEVICE,TYPE,NAME', 'c', 'show', '--active'], stderr=subprocess.DEVNULL).decode()
-            for line in out.splitlines():
-                parts = line.strip().split(':')
-                if len(parts) >= 3:
-                    dev, conn_type, conn_name = parts[0], parts[1], parts[2]
-                    if conn_type in ('802-11-wireless', 'wifi', 'ethernet', 'bluetooth', 'gsm', 'cdma'):
-                        is_tethering = False
-                        if conn_type in ('bluetooth', 'gsm', 'cdma') or 'usb' in dev.lower() or 'rndis' in dev.lower():
-                            is_tethering = True
-                        else:
-                            name_lower = conn_name.lower()
-                            keywords = ['hotspot', 'tether', 'iphone', 'android', 'galaxy', 'pixel', 'redmi', 'xiaomi', 'poco', 'oppo', 'vivo', 'realme']
-                            if any(kw in name_lower for kw in keywords):
+            res = subprocess.run(['nmcli', '-t', '-f', 'DEVICE,TYPE,NAME', 'c', 'show', '--active'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=1.5, text=True)
+            if res.returncode == 0 and res.stdout:
+                for line in res.stdout.splitlines():
+                    parts = line.strip().split(':')
+                    if len(parts) >= 3:
+                        dev, conn_type, conn_name = parts[0], parts[1], parts[2]
+                        if conn_type in ('802-11-wireless', 'wifi', 'ethernet', 'bluetooth', 'gsm', 'cdma'):
+                            is_tethering = False
+                            if conn_type in ('bluetooth', 'gsm', 'cdma') or 'usb' in dev.lower() or 'rndis' in dev.lower():
                                 is_tethering = True
                             else:
-                                try:
-                                    dev_out = subprocess.check_output(['nmcli', '-t', '-f', 'GENERAL.METERED', 'dev', 'show', dev], stderr=subprocess.DEVNULL).decode()
-                                    if 'yes' in dev_out.lower():
-                                        is_tethering = True
-                                except Exception:
-                                    pass
-                        return {
-                            'name': conn_name,
-                            'is_tethering': is_tethering,
-                            'icon': 'network-wireless-hotspot-symbolic' if is_tethering else 'network-wireless-symbolic',
-                            'connected': True
-                        }
+                                name_lower = conn_name.lower()
+                                keywords = ['hotspot', 'tether', 'iphone', 'android', 'galaxy', 'pixel', 'redmi', 'xiaomi', 'poco', 'oppo', 'vivo', 'realme']
+                                if any(kw in name_lower for kw in keywords):
+                                    is_tethering = True
+                                else:
+                                    try:
+                                        m_res = subprocess.run(['nmcli', '-t', '-f', 'GENERAL.METERED', 'dev', 'show', dev], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=1.0, text=True)
+                                        if m_res.returncode == 0 and m_res.stdout and 'yes' in m_res.stdout.lower():
+                                            is_tethering = True
+                                    except Exception:
+                                        pass
+                            return {
+                                'name': conn_name,
+                                'is_tethering': is_tethering,
+                                'icon': 'network-wireless-hotspot-symbolic' if is_tethering else 'network-wireless-symbolic',
+                                'connected': True
+                            }
         except Exception:
             pass
         return {
@@ -302,24 +303,80 @@ class MetricCollector:
             'connected': False
         }
 
+    def _check_tailscale(self):
+        # Layer 1: Direct UNIX socket query to tailscaled daemon (fastest: ~1ms, 0 subprocesses spawned)
+        sock_path = '/run/tailscale/tailscaled.sock'
+        if os.path.exists(sock_path):
+            try:
+                s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                s.settimeout(0.5)
+                s.connect(sock_path)
+                s.sendall(b'GET /localapi/v0/status HTTP/1.0\r\nHost: local-tailscaled.sock\r\n\r\n')
+                resp = b''
+                while True:
+                    chunk = s.recv(4096)
+                    if not chunk:
+                        break
+                    resp += chunk
+                s.close()
+                parts = resp.split(b'\r\n\r\n', 1)
+                if len(parts) == 2:
+                    data = json.loads(parts[1].decode('utf-8', errors='ignore'))
+                    return data.get('BackendState') == 'Running'
+            except Exception:
+                pass
+
+        # Layer 2: tailscale status CLI command with multi-path discovery
+        candidates = [shutil.which('tailscale'), '/opt/tailscale/tailscale', '/home/deck/.local/bin/tailscale', '/usr/bin/tailscale']
+        for cand in candidates:
+            if cand and os.path.exists(cand):
+                try:
+                    res = subprocess.run([cand, 'status'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1.5)
+                    if res.returncode == 0:
+                        return True
+                except Exception:
+                    pass
+                break
+
+        # Layer 3: Kernel network interface check (sysfs)
+        carrier_path = '/sys/class/net/tailscale0/carrier'
+        if os.path.exists(carrier_path):
+            try:
+                with open(carrier_path, 'r') as f:
+                    return f.read().strip() == '1'
+            except Exception:
+                pass
+
+        return False
+
     def get_services(self):
-        syncthing = subprocess.call(['pgrep', '-x', 'syncthing'], stdout=subprocess.DEVNULL) == 0
-        dropbox = subprocess.call(['pgrep', '-f', 'dropbox'], stdout=subprocess.DEVNULL) == 0
-        rclone = subprocess.call(['pgrep', '-x', 'rclone'], stdout=subprocess.DEVNULL) == 0
-        
+        syncthing = False
+        try:
+            syncthing = subprocess.run(['pgrep', '-f', 'syncthing'], stdout=subprocess.DEVNULL, timeout=1.0).returncode == 0
+        except Exception:
+            pass
+
+        dropbox = False
+        try:
+            dropbox = subprocess.run(['pgrep', '-f', 'dropbox'], stdout=subprocess.DEVNULL, timeout=1.0).returncode == 0
+        except Exception:
+            pass
+
+        rclone = False
+        try:
+            rclone = subprocess.run(['pgrep', '-f', 'rclone'], stdout=subprocess.DEVNULL, timeout=1.0).returncode == 0
+        except Exception:
+            pass
+
         tmux_count = 0
         try:
-            out = subprocess.check_output(['tmux', 'ls'], stderr=subprocess.DEVNULL).decode()
-            tmux_count = len([l for l in out.strip().splitlines() if l.strip()])
+            res = subprocess.run(['tmux', 'ls'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=1.0, text=True)
+            if res.returncode == 0 and res.stdout:
+                tmux_count = len([l for l in res.stdout.strip().splitlines() if l.strip()])
         except Exception:
             tmux_count = 0
 
-        tailscale = False
-        try:
-            res = subprocess.call(['tailscale', 'status'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            tailscale = (res == 0)
-        except Exception:
-            tailscale = False
+        tailscale = self._check_tailscale()
 
         return {
             'syncthing': syncthing,
@@ -330,14 +387,16 @@ class MetricCollector:
         }
 
     def get_ping(self):
-        try:
-            out = subprocess.check_output(['ping', '-c', '1', '-W', '1', '1.1.1.1'], stderr=subprocess.DEVNULL).decode()
-            for line in out.splitlines():
-                if 'time=' in line:
-                    val = line.split('time=')[1].split()[0]
-                    return f"{round(float(val), 1)} ms"
-        except Exception:
-            pass
+        for target in ['1.1.1.1', '8.8.8.8']:
+            try:
+                res = subprocess.run(['ping', '-c', '1', '-W', '1', target], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=1.5, text=True)
+                if res.returncode == 0 and res.stdout:
+                    for line in res.stdout.splitlines():
+                        if 'time=' in line:
+                            val = line.split('time=')[1].split()[0]
+                            return f"{round(float(val), 1)} ms"
+            except Exception:
+                pass
         return "Offline"
 
     def collect_all(self):

@@ -63,6 +63,9 @@ PlasmoidItem {
             xhr.ontimeout = function() {
                 container.isConnected = false;
             };
+            xhr.onerror = function() {
+                container.isConnected = false;
+            };
             xhr.send();
         }
 
@@ -644,8 +647,8 @@ PlasmoidItem {
                                 }
                                 Item { Layout.fillWidth: true }
                                 Text {
-                                    text: container.monitorData.services.syncthing ? "ACTIVE" : "OFF"
-                                    color: container.monitorData.services.syncthing ? "#00e676" : "#78909c"
+                                    text: (container.monitorData.services && container.monitorData.services.syncthing) ? "ACTIVE" : "OFF"
+                                    color: (container.monitorData.services && container.monitorData.services.syncthing) ? "#00e676" : "#78909c"
                                     font.pixelSize: root.baseFontSize - 3
                                     font.bold: true
                                 }
@@ -682,8 +685,8 @@ PlasmoidItem {
                                 }
                                 Item { Layout.fillWidth: true }
                                 Text {
-                                    text: container.monitorData.services.dropbox ? "ACTIVE" : "OFF"
-                                    color: container.monitorData.services.dropbox ? "#00e676" : "#78909c"
+                                    text: (container.monitorData.services && container.monitorData.services.dropbox) ? "ACTIVE" : "OFF"
+                                    color: (container.monitorData.services && container.monitorData.services.dropbox) ? "#00e676" : "#78909c"
                                     font.pixelSize: root.baseFontSize - 3
                                     font.bold: true
                                 }
@@ -717,8 +720,8 @@ PlasmoidItem {
                                 }
                                 Item { Layout.fillWidth: true }
                                 Text {
-                                    text: container.monitorData.services.rclone ? "ACTIVE" : "OFF"
-                                    color: container.monitorData.services.rclone ? "#00e676" : "#78909c"
+                                    text: (container.monitorData.services && container.monitorData.services.rclone) ? "ACTIVE" : "OFF"
+                                    color: (container.monitorData.services && container.monitorData.services.rclone) ? "#00e676" : "#78909c"
                                     font.pixelSize: root.baseFontSize - 3
                                     font.bold: true
                                 }
@@ -752,8 +755,8 @@ PlasmoidItem {
                                 }
                                 Item { Layout.fillWidth: true }
                                 Text {
-                                    text: container.monitorData.services.tailscale ? "ONLINE" : "OFF"
-                                    color: container.monitorData.services.tailscale ? "#00e676" : "#78909c"
+                                    text: (container.monitorData.services && container.monitorData.services.tailscale) ? "ONLINE" : "OFF"
+                                    color: (container.monitorData.services && container.monitorData.services.tailscale) ? "#00e676" : "#78909c"
                                     font.pixelSize: root.baseFontSize - 3
                                     font.bold: true
                                 }
@@ -781,8 +784,8 @@ PlasmoidItem {
                             Text { text: "Tmux Sessions"; color: "#cfd8dc"; font.pixelSize: root.baseFontSize - 2; font.bold: true }
                             Item { Layout.fillWidth: true }
                             Text {
-                                text: (container.monitorData.services.tmux_sessions > 0) ? (container.monitorData.services.tmux_sessions + " Active") : "No Session"
-                                color: (container.monitorData.services.tmux_sessions > 0) ? "#00e676" : "#78909c"
+                                text: (container.monitorData.services && container.monitorData.services.tmux_sessions > 0) ? (container.monitorData.services.tmux_sessions + " Active") : "No Session"
+                                color: (container.monitorData.services && container.monitorData.services.tmux_sessions > 0) ? "#00e676" : "#78909c"
                                 font.pixelSize: root.baseFontSize - 3
                                 font.bold: true
                             }
