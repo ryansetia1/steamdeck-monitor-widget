@@ -389,7 +389,7 @@ class MetricCollector:
     def get_ping(self):
         for target in ['1.1.1.1', '8.8.8.8']:
             try:
-                res = subprocess.run(['ping', '-c', '1', '-W', '1', target], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=1.5, text=True)
+                res = subprocess.run(['ping', '-c', '1', '-W', '2', target], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=2.5, text=True)
                 if res.returncode == 0 and res.stdout:
                     for line in res.stdout.splitlines():
                         if 'time=' in line:
