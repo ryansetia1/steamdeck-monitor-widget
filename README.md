@@ -70,6 +70,7 @@ chmod +x install.sh
 2. Sets up and starts the systemd user service (`deck-monitor.service`).
 3. Installs the Plasma 6 plasmoid to `~/.local/share/plasma/plasmoids/org.ryan.deckmonitor`.
 4. Automatically attaches the widget to your desktop.
+5. Installs the **Deck Ping** taskbar indicator (`org.ryan.deckping`) and places it just left of the clock. It shows `Ping xx ms` in green/orange/red, fed by the same daemon. (Plasma's panel is briefly restarted to apply the position.)
 
 ---
 

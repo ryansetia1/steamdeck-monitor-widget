@@ -20,4 +20,18 @@ echo "[✓] Daemon script removed"
 rm -rf "$HOME/.local/share/plasma/plasmoids/org.ryan.deckmonitor"
 echo "[✓] Plasmoid removed"
 
+# 4. Remove panel ping widget (remove it from the panel first, then the files)
+if command -v qdbus6 >/dev/null 2>&1 && pgrep -x plasmashell >/dev/null; then
+    qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript "
+    var ps = panels();
+    for (var i = 0; i < ps.length; i++) {
+        var ws = ps[i].widgets();
+        for (var j = 0; j < ws.length; j++) {
+            if (ws[j].type === 'org.ryan.deckping') ws[j].remove();
+        }
+    }" >/dev/null 2>&1 || true
+fi
+rm -rf "$HOME/.local/share/plasma/plasmoids/org.ryan.deckping"
+echo "[✓] Panel ping widget removed"
+
 echo "=== Uninstallation Complete! ==="

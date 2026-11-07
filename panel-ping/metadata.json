@@ -1,0 +1,13 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [{"Email": "deck@steamdeck", "Name": "Ryan"}],
+        "Category": "System Information",
+        "Description": "Compact ping (1.1.1.1) indicator for the panel, fed by the Deck Monitor daemon",
+        "Icon": "network-wireless",
+        "Id": "org.ryan.deckping",
+        "License": "GPL-2.0+",
+        "Name": "Deck Ping"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
