@@ -33,13 +33,20 @@ echo "[✓] Plasmoid installed to $PLASMOID_DIR"
 
 # 4. Optional: add to desktop
 if command -v qdbus6 >/dev/null 2>&1; then
-    echo "[*] Adding widget to current desktop layout..."
+    echo "[*] Adding widget to desktop layout(s)..."
     qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript "
     var d = desktops();
-    if (d.length > 0) {
-        var w = d[0].addWidget('org.ryan.deckmonitor');
-        if (w) {
-            w.userBackgroundHints = 'NoBackground';
+    for (var i = 0; i < d.length; i++) {
+        var ws = d[i].widgets();
+        var has = false;
+        for (var j = 0; j < ws.length; j++) {
+            if (ws[j].type === 'org.ryan.deckmonitor') has = true;
+        }
+        if (!has) {
+            var w = d[i].addWidget('org.ryan.deckmonitor');
+            if (w) {
+                w.userBackgroundHints = 'NoBackground';
+            }
         }
     }
     " || true

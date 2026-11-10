@@ -22,6 +22,10 @@
   - Displays partition labels, usage percent, free space, and dynamically disappears upon unmounting.
 - **Smart Wi-Fi & Hotspot Detection**:
   - Clean monochromatic wireless indicators. Automatically switches to a dedicated **Hotspot icon** when tethered to mobile devices (Android/iPhone).
+- **Smart Docking & Dual-Display Auto-Migrate**:
+  - Perfect for using the Steam Deck as a daily driver PC on a dock!
+  - When docked and the Steam Deck's built-in screen is turned **ON**, the monitor widget automatically moves to the Steam Deck screen, keeping your main external monitor clean and uncluttered.
+  - When the Steam Deck's screen is turned **OFF** (or undocked), the widget seamlessly returns to its original position on the primary monitor.
 - **Clean Minimalist Design**:
   - Official Steam Deck branding with connection status indicator.
   - Borderless APU temperature and battery gauges with subtle vertical separator lines.

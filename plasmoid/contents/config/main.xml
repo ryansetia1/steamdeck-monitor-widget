@@ -10,5 +10,17 @@
       <label>Base Font Size</label>
       <default>12</default>
     </entry>
+    <entry name="backgroundStyle" type="Int">
+      <label>Background style (0 = solid, 1 = glass)</label>
+      <default>0</default>
+    </entry>
+    <entry name="glassOpacity" type="Int">
+      <label>Glass background opacity (percent)</label>
+      <default>55</default>
+    </entry>
+    <entry name="autoScreenMigrate" type="Bool">
+      <label>Automatically move widget to Steam Deck screen when dual displays are active</label>
+      <default>true</default>
+    </entry>
   </group>
 </kcfg>

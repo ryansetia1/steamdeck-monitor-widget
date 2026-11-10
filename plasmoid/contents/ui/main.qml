@@ -9,7 +9,14 @@ PlasmoidItem {
 
     Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground | PlasmaCore.Types.ConfigurableBackground
 
-    property int baseFontSize: Plasmoid.configuration.fontSizeScale || 12
+    property bool glassMode: Plasmoid.configuration ? Plasmoid.configuration.backgroundStyle === 1 : false
+    property real glassOpacity: ((Plasmoid.configuration && Plasmoid.configuration.glassOpacity) || 55) / 100
+    property int baseFontSize: (Plasmoid.configuration && Plasmoid.configuration.fontSizeScale) || 12
+    property bool autoScreenMigrate: (Plasmoid.configuration && Plasmoid.configuration.autoScreenMigrate !== undefined) ? Plasmoid.configuration.autoScreenMigrate : true
+
+    property bool isOnDeckScreen: false
+    property bool isDualScreenActive: false
+    property bool shouldBeVisible: true
 
     preferredRepresentation: fullRepresentation
     implicitWidth: 320 + (baseFontSize - 12) * 15
@@ -19,13 +26,73 @@ PlasmoidItem {
     Layout.preferredWidth: implicitWidth
     Layout.preferredHeight: implicitHeight
 
+    visible: shouldBeVisible
+
+    function updateScreenState() {
+        var screens = Qt.application.screens;
+        var hasEdp = false;
+        var hasExt = false;
+        var edpScreenIndex = -1;
+
+        if (screens && screens.length > 0) {
+            for (var i = 0; i < screens.length; i++) {
+                var s = screens[i];
+                if (s && s.name && s.name.toLowerCase().indexOf("edp") !== -1) {
+                    hasEdp = true;
+                    edpScreenIndex = i;
+                } else if (s && s.name) {
+                    hasExt = true;
+                }
+            }
+        }
+
+        var scrName = (root.Screen && root.Screen.name) ? root.Screen.name : "";
+        if (scrName.length > 0) {
+            root.isOnDeckScreen = scrName.toLowerCase().indexOf("edp") !== -1;
+        } else if (Plasmoid.containment && edpScreenIndex !== -1) {
+            root.isOnDeckScreen = (Plasmoid.containment.screen === edpScreenIndex);
+        }
+
+        root.isDualScreenActive = (hasEdp && hasExt);
+
+        if (root.autoScreenMigrate && root.isDualScreenActive) {
+            root.shouldBeVisible = root.isOnDeckScreen;
+        } else {
+            root.shouldBeVisible = true;
+        }
+    }
+
+    Connections {
+        target: Qt.application
+        function onScreensChanged() {
+            root.updateScreenState();
+        }
+    }
+
+    Connections {
+        target: root.Screen
+        function onNameChanged() {
+            root.updateScreenState();
+        }
+    }
+
+    Timer {
+        id: screenCheckTimer
+        interval: 2000
+        running: true
+        repeat: true
+        onTriggered: root.updateScreenState()
+    }
+
     Component.onCompleted: {
         Plasmoid.userBackgroundHints = PlasmaCore.Types.NoBackground;
+        root.updateScreenState();
     }
 
     fullRepresentation: Item {
         id: container
         anchors.fill: parent
+        visible: root.shouldBeVisible
 
         // State properties
         property var monitorData: ({
@@ -69,6 +136,11 @@ PlasmoidItem {
             xhr.send();
         }
 
+        // Inner tiles/tracks: solid colour, or a faint white veil in glass mode
+        function tileColor(solid) {
+            return root.glassMode ? Qt.rgba(1, 1, 1, 0.08) : solid;
+        }
+
         function getBarColor(pct) {
             if (pct >= 85) return "#ff5252";
             if (pct >= 70) return "#ffa726";
@@ -105,18 +177,29 @@ PlasmoidItem {
         Timer {
             id: pollTimer
             interval: 2000
-            running: true
+            running: root.shouldBeVisible
             repeat: true
             triggeredOnStart: true
             onTriggered: container.fetchMetrics()
         }
 
+        Connections {
+            target: root
+            function onShouldBeVisibleChanged() {
+                if (root.shouldBeVisible) {
+                    container.fetchMetrics();
+                }
+            }
+        }
+
         // Background Card with smooth rounded corners
         Rectangle {
             anchors.fill: parent
-            color: "#161820"
+            color: root.glassMode ? Qt.rgba(0.09, 0.10, 0.14, root.glassOpacity) : "#161820"
             radius: 16
-            border.color: container.isConnected ? "#2c3242" : "#4a2424"
+            border.color: root.glassMode
+                ? (container.isConnected ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 0.32, 0.32, 0.5))
+                : (container.isConnected ? "#2c3242" : "#4a2424")
             border.width: 1
             clip: true
 
@@ -152,7 +235,7 @@ PlasmoidItem {
 
                     // Ping Indicator Badge
                     Rectangle {
-                        color: "#212532"
+                        color: container.tileColor("#212532")
                         radius: 8
                         height: root.baseFontSize + 10
                         Layout.preferredWidth: pingRow.implicitWidth + 12
@@ -184,7 +267,7 @@ PlasmoidItem {
                     Layout.fillWidth: true
                     height: root.baseFontSize + 14
                     radius: 8
-                    color: "#1e222d"
+                    color: container.tileColor("#1e222d")
 
                     RowLayout {
                         anchors.fill: parent
@@ -226,7 +309,7 @@ PlasmoidItem {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
-                    color: "#242834"
+                    color: container.tileColor("#242834")
                 }
 
                 // --- HARDWARE SECTION (CPU, RAM) ---
@@ -255,7 +338,7 @@ PlasmoidItem {
                             Layout.fillWidth: true
                             height: 6
                             radius: 3
-                            color: "#242936"
+                            color: container.tileColor("#242936")
                             Rectangle {
                                 width: Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.cpu_percent || 0) / 100.0)))
                                 height: parent.height
@@ -287,7 +370,7 @@ PlasmoidItem {
                             Layout.fillWidth: true
                             height: 6
                             radius: 3
-                            color: "#242936"
+                            color: container.tileColor("#242936")
                             Rectangle {
                                 width: Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.memory.percent || 0) / 100.0)))
                                 height: parent.height
@@ -325,7 +408,7 @@ PlasmoidItem {
                                 Layout.fillWidth: true
                                 height: 6
                                 radius: 3
-                                color: "#242936"
+                                color: container.tileColor("#242936")
                                 Rectangle {
                                     width: Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.storage.percent || 0) / 100.0)))
                                     height: parent.height
@@ -374,7 +457,7 @@ PlasmoidItem {
                                 Layout.fillWidth: true
                                 height: 6
                                 radius: 3
-                                color: "#242936"
+                                color: container.tileColor("#242936")
                                 Rectangle {
                                     width: container.monitorData.sdcard.mounted ? Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.sdcard.percent || 0) / 100.0))) : 0
                                     height: parent.height
@@ -440,7 +523,7 @@ PlasmoidItem {
                                 Layout.fillWidth: true
                                 height: 6
                                 radius: 3
-                                color: "#242936"
+                                color: container.tileColor("#242936")
                                 Rectangle {
                                     width: Math.max(0, Math.min(parent.width, parent.width * ((modelData.percent || 0) / 100.0)))
                                     height: parent.height
@@ -473,7 +556,7 @@ PlasmoidItem {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
-                    color: "#242834"
+                    color: container.tileColor("#242834")
                 }
 
                 // --- TEMP & BATTERY ROW ---
@@ -518,7 +601,7 @@ PlasmoidItem {
                         Layout.preferredWidth: 1
                         Layout.preferredHeight: root.baseFontSize + 24
                         Layout.alignment: Qt.AlignVCenter
-                        color: "#282d3c"
+                        color: container.tileColor("#282d3c")
                     }
 
                     // Battery Badge
@@ -558,7 +641,7 @@ PlasmoidItem {
                         Layout.preferredWidth: 1
                         Layout.preferredHeight: root.baseFontSize + 24
                         Layout.alignment: Qt.AlignVCenter
-                        color: "#282d3c"
+                        color: container.tileColor("#282d3c")
                     }
 
                     // Battery Health Badge
@@ -598,7 +681,7 @@ PlasmoidItem {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
-                    color: "#242834"
+                    color: container.tileColor("#242834")
                 }
 
                 // --- SERVICES GRID ---
@@ -625,7 +708,7 @@ PlasmoidItem {
                             Layout.fillWidth: true
                             height: root.baseFontSize + 14
                             radius: 8
-                            color: "#1e222d"
+                            color: container.tileColor("#1e222d")
 
                             RowLayout {
                                 anchors.fill: parent
@@ -660,7 +743,7 @@ PlasmoidItem {
                             Layout.fillWidth: true
                             height: root.baseFontSize + 14
                             radius: 8
-                            color: "#1e222d"
+                            color: container.tileColor("#1e222d")
 
                             RowLayout {
                                 anchors.fill: parent
@@ -698,7 +781,7 @@ PlasmoidItem {
                             Layout.fillWidth: true
                             height: root.baseFontSize + 14
                             radius: 8
-                            color: "#1e222d"
+                            color: container.tileColor("#1e222d")
 
                             RowLayout {
                                 anchors.fill: parent
@@ -733,7 +816,7 @@ PlasmoidItem {
                             Layout.fillWidth: true
                             height: root.baseFontSize + 14
                             radius: 8
-                            color: "#1e222d"
+                            color: container.tileColor("#1e222d")
 
                             RowLayout {
                                 anchors.fill: parent
@@ -769,7 +852,7 @@ PlasmoidItem {
                         Layout.fillWidth: true
                         height: root.baseFontSize + 14
                         radius: 8
-                        color: "#1e222d"
+                        color: container.tileColor("#1e222d")
 
                         RowLayout {
                             anchors.fill: parent
