@@ -10,7 +10,10 @@ Item {
     property var d: ({})
     property bool connected: false
     property bool glass: false
+    property var ejectState: ({})     // mount -> "busy" | error message
+    property string notice: ""        // e.g. "Samsung T7 is safe to remove"
     signal restoreRequested()
+    signal ejectRequested(string mount)
 
     // ---------- palette ----------
     readonly property color cBg: glass ? "transparent" : "#0c0f14"
@@ -43,7 +46,7 @@ Item {
             list.push({ name: "microSD", pct: sd.percent || 0, free: sd.free_gb || 0, total: sd.total_gb || 0 });
         var ext = d.external_drives || [];
         for (var i = 0; i < ext.length; i++)
-            list.push({ name: ext[i].name || "External drive", pct: ext[i].percent || 0,
+            list.push({ name: ext[i].name || "External drive", mount: ext[i].mount, pct: ext[i].percent || 0,
                         free: ext[i].free_gb || 0, total: ext[i].total_gb || 0 });
         return list;
     }
@@ -177,6 +180,11 @@ Item {
         property real freeGb: 0
         property real totalGb: 0
         property bool compact: false
+        property string mount: ""                       // set only for ejectable drives
+        readonly property var ejectInfo: mount ? dash.ejectState[mount] : undefined
+        readonly property bool ejecting: ejectInfo === "busy"
+        readonly property string ejectError: (ejectInfo && ejectInfo !== "busy") ? ejectInfo : ""
+        readonly property string detail: ejecting ? "Ejecting…" : ejectError
         spacing: compact ? 6 : 8
 
         RowLayout {
@@ -188,13 +196,44 @@ Item {
                 font.pixelSize: drive.compact ? 19 : 21
                 font.weight: Font.DemiBold
                 elide: Text.ElideRight
-                Layout.fillWidth: true
+                // ejectable rows keep the name tight so the eject button sits right after it
+                Layout.fillWidth: !drive.mount
+                Layout.maximumWidth: drive.mount ? Math.ceil(implicitWidth) + 1 : Number.POSITIVE_INFINITY
             }
+            Rectangle {
+                visible: drive.mount !== ""
+                Layout.preferredWidth: drive.compact ? 28 : 32
+                Layout.preferredHeight: Layout.preferredWidth
+                radius: 8
+                color: ejectMouse.containsMouse && !drive.ejecting ? dash.cTrack : "transparent"
+                border.color: dash.cBorder
+                border.width: 1
+                Image {
+                    anchors.centerIn: parent
+                    width: parent.width * 0.55; height: width
+                    source: Qt.resolvedUrl("../icons/eject.svg")
+                    sourceSize: Qt.size(48, 48)
+                    opacity: drive.ejecting ? 0.35 : 1
+                }
+                MouseArea {
+                    id: ejectMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    enabled: !drive.ejecting
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: dash.ejectRequested(drive.mount)
+                }
+            }
+            Item { visible: drive.mount !== ""; Layout.fillWidth: true }
             Text {
                 visible: drive.compact
-                text: dash.gb(drive.freeGb) + " GB free"
-                color: dash.cLabel
+                text: drive.detail || (dash.gb(drive.freeGb) + " GB free")
+                color: drive.ejectError ? dash.cRed : dash.cLabel
                 font.pixelSize: 16
+                elide: Text.ElideRight
+                horizontalAlignment: Text.AlignRight
+                Layout.fillWidth: drive.ejectError !== ""
+                Layout.minimumWidth: 0
             }
             Text {
                 text: Math.round(drive.pct) + "%"
@@ -211,9 +250,11 @@ Item {
         }
         Text {
             visible: !drive.compact
-            text: dash.gb(drive.freeGb) + " GB free of " + dash.gb(drive.totalGb) + " GB"
-            color: dash.cLabel
+            Layout.fillWidth: true
+            text: drive.detail || (dash.gb(drive.freeGb) + " GB free of " + dash.gb(drive.totalGb) + " GB")
+            color: drive.ejectError ? dash.cRed : dash.cLabel
             font.pixelSize: 18
+            elide: Text.ElideRight
         }
     }
 
@@ -372,9 +413,11 @@ Item {
                         Caption { text: "Storage" }
                         Item { Layout.fillWidth: true }
                         Text {
-                            visible: dash.drives.length > 1
-                            text: dash.drives.length + " DRIVES"
-                            color: dash.cMuted
+                            visible: dash.notice !== "" || dash.drives.length > 1
+                            text: dash.notice !== "" ? dash.notice.toUpperCase() : dash.drives.length + " DRIVES"
+                            color: dash.notice !== "" ? dash.cGreen : dash.cMuted
+                            elide: Text.ElideRight
+                            Layout.maximumWidth: 260
                             font.pixelSize: 16
                             font.weight: Font.Bold
                             font.letterSpacing: 1.2
@@ -395,6 +438,7 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 compact: dash.compactDrives
                                 name: modelData.name
+                                mount: modelData.mount || ""
                                 pct: modelData.pct
                                 freeGb: modelData.free
                                 totalGb: modelData.total

@@ -24,7 +24,8 @@ PlasmoidItem {
     readonly property bool effectiveGlassMode: (root.isOnDeckScreen && root.deckSolidBg) ? false : root.glassMode
 
     readonly property int compactWidth: 320 + (baseFontSize - 12) * 15
-    readonly property int compactHeight: 390 + (baseFontSize - 12) * 16
+    property int extDriveCount: 0
+    readonly property int compactHeight: 390 + (baseFontSize - 12) * 16 + extDriveCount * (baseFontSize * 2 + 24)
 
     function setDeckFullscreen(val) {
         root.deckFullscreen = val;
@@ -35,7 +36,7 @@ PlasmoidItem {
 
     preferredRepresentation: fullRepresentation
     implicitWidth: 320 + (baseFontSize - 12) * 15
-    implicitHeight: 390 + (baseFontSize - 12) * 16
+    implicitHeight: compactHeight + 16
     Layout.minimumWidth: 280
     Layout.minimumHeight: 350
     Layout.preferredWidth: implicitWidth
@@ -123,6 +124,55 @@ PlasmoidItem {
             ping: "..."
         })
         property bool isConnected: false
+        property var ejectState: ({})      // mount -> "busy" | error message
+        property string ejectNotice: ""
+
+        function setEjectState(mount, val) {
+            var o = {};
+            for (var k in ejectState) o[k] = ejectState[k];
+            if (val === undefined) delete o[mount]; else o[mount] = val;
+            ejectState = o;
+        }
+
+        function ejectDrive(mount) {
+            if (ejectState[mount] === "busy") return;
+            var name = mount.split("/").pop();
+            var ext = monitorData.external_drives || [];
+            for (var i = 0; i < ext.length; i++) if (ext[i].mount === mount) name = ext[i].name;
+            setEjectState(mount, "busy");
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "http://127.0.0.1:19842/eject");
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.timeout = 90000;
+            var fail = function(msg) {
+                setEjectState(mount, msg);
+                ejectErrorTimer.mounts.push(mount);
+                ejectErrorTimer.restart();
+            };
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState !== XMLHttpRequest.DONE) return;
+                var res = {};
+                try { res = JSON.parse(xhr.responseText); } catch (e) {}
+                if (xhr.status === 200 && res.ok) {
+                    setEjectState(mount, undefined);
+                    ejectNotice = name + (res.message === "Safe to remove" ? " is safe to remove" : " unmounted");
+                    noticeTimer.restart();
+                    fetchMetrics();
+                } else {
+                    fail(res.error || (xhr.status === 0 ? "Monitor daemon not responding" : "Eject failed"));
+                }
+            };
+            xhr.ontimeout = function() { fail("Eject timed out"); };
+            xhr.send(JSON.stringify({ mount: mount }));
+        }
+
+        Timer {
+            id: ejectErrorTimer
+            property var mounts: []
+            interval: 6000
+            onTriggered: { for (var i = 0; i < mounts.length; i++) container.setEjectState(mounts[i], undefined); mounts = []; }
+        }
+        Timer { id: noticeTimer; interval: 6000; onTriggered: container.ejectNotice = "" }
 
         function fetchMetrics() {
             var xhr = new XMLHttpRequest();
@@ -133,6 +183,7 @@ PlasmoidItem {
                     if (xhr.status === 200) {
                         try {
                             container.monitorData = JSON.parse(xhr.responseText);
+                            root.extDriveCount = (container.monitorData.external_drives || []).length;
                             container.isConnected = true;
                         } catch (e) {
                             container.isConnected = false;
@@ -530,6 +581,17 @@ PlasmoidItem {
                         }
                     }
 
+                    // Shown after an eject, in the space the removed drive row used to take
+                    Text {
+                        visible: container.ejectNotice !== ""
+                        Layout.fillWidth: true
+                        text: "✓ " + container.ejectNotice
+                        color: "#4ade80"
+                        font.pixelSize: root.baseFontSize - 2
+                        font.bold: true
+                        elide: Text.ElideRight
+                    }
+
                     // --- EXTERNAL STORAGE DRIVES (Dynamically rendered if connected) ---
                     Repeater {
                         model: (container.monitorData.external_drives && container.monitorData.external_drives.length > 0) ? container.monitorData.external_drives : 0
@@ -553,7 +615,31 @@ PlasmoidItem {
                                     font.pixelSize: root.baseFontSize - 1
                                     font.bold: true
                                     elide: Text.ElideRight
-                                    Layout.maximumWidth: parent.width * 0.7
+                                    Layout.maximumWidth: parent.width * 0.6
+                                }
+                                Rectangle {
+                                    readonly property bool busy: container.ejectState[modelData.mount] === "busy"
+                                    Layout.preferredWidth: root.baseFontSize + 8
+                                    Layout.preferredHeight: root.baseFontSize + 8
+                                    radius: 5
+                                    color: ejectArea.containsMouse && !busy ? container.tileColor("#2a3040") : "transparent"
+                                    border.color: container.tileColor("#2c3242")
+                                    border.width: 1
+                                    Image {
+                                        anchors.centerIn: parent
+                                        width: parent.width * 0.6; height: width
+                                        source: Qt.resolvedUrl("../icons/eject.svg")
+                                        sourceSize: Qt.size(32, 32)
+                                        opacity: parent.busy ? 0.35 : 1
+                                    }
+                                    MouseArea {
+                                        id: ejectArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        enabled: !parent.busy
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: container.ejectDrive(modelData.mount)
+                                    }
                                 }
                                 Item { Layout.fillWidth: true }
                                 Text {
@@ -581,9 +667,12 @@ PlasmoidItem {
                             RowLayout {
                                 Layout.fillWidth: true
                                 Text {
-                                    text: (modelData.used_gb >= 1000 ? (modelData.used_gb/1024).toFixed(1) + "T" : Math.round(modelData.used_gb || 0) + "G") + "/" + (modelData.total_gb >= 1000 ? (modelData.total_gb/1024).toFixed(1) + "T" : Math.round(modelData.total_gb || 0) + "G")
-                                    color: "#90a4ae"
+                                    readonly property var st: container.ejectState[modelData.mount]
+                                    text: st === "busy" ? "Ejecting…" : (st ? st : ((modelData.used_gb >= 1000 ? (modelData.used_gb/1024).toFixed(1) + "T" : Math.round(modelData.used_gb || 0) + "G") + "/" + (modelData.total_gb >= 1000 ? (modelData.total_gb/1024).toFixed(1) + "T" : Math.round(modelData.total_gb || 0) + "G")))
+                                    color: (st && st !== "busy") ? "#ff6b6b" : "#90a4ae"
                                     font.pixelSize: root.baseFontSize - 3
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
                                 }
                                 Item { Layout.fillWidth: true }
                                 Text {
@@ -748,174 +837,57 @@ PlasmoidItem {
                         columnSpacing: 7
                         rowSpacing: 5
 
-                        // Syncthing
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: root.baseFontSize + 14
-                            radius: 8
-                            color: container.tileColor("#1e222d")
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 6
-                                anchors.rightMargin: 6
-                                spacing: 4
-                                Kirigami.Icon {
-                                    source: "syncthing"
-                                    Layout.preferredWidth: root.baseFontSize + 1
-                                    Layout.preferredHeight: root.baseFontSize + 1
-                                }
-                                Text {
-                                    text: "Syncthing"
-                                    color: "#cfd8dc"
-                                    font.pixelSize: root.baseFontSize - 2
-                                    font.bold: true
-                                    elide: Text.ElideRight
-                                    Layout.maximumWidth: parent.width * 0.55
-                                }
-                                Item { Layout.fillWidth: true }
-                                Text {
-                                    text: (container.monitorData.services && container.monitorData.services.syncthing) ? "ACTIVE" : "OFF"
-                                    color: (container.monitorData.services && container.monitorData.services.syncthing) ? "#00e676" : "#78909c"
-                                    font.pixelSize: root.baseFontSize - 3
-                                    font.bold: true
-                                }
+                        Repeater {
+                            model: {
+                                var s = container.monitorData.services || {};
+                                var t = s.tmux_sessions || 0;
+                                return [
+                                    { name: "Syncthing",    icon: "syncthing.svg",    ok: !!s.syncthing, on: "ACTIVE",  off: "OFF" },
+                                    { name: "Dropbox",      icon: "dropbox.svg",      ok: !!s.dropbox,   on: "SYNCED",  off: "OFF" },
+                                    { name: "GDrive",       icon: "google-drive.svg", ok: !!s.rclone,    on: "MOUNTED", off: "OFF" },
+                                    { name: "Tailscale",    icon: "tailscale.svg",    ok: !!s.tailscale, on: "ONLINE",  off: "OFF" },
+                                    { name: "tmux",         icon: "tmux.png",         ok: t > 0,
+                                      on: t + (t === 1 ? " SESSION" : " SESSIONS"), off: "NO SESSION" }
+                                ];
                             }
-                        }
 
-                        // Dropbox
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: root.baseFontSize + 14
-                            radius: 8
-                            color: container.tileColor("#1e222d")
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.columnSpan: index === 4 ? 2 : 1   // tmux spans the full row
+                                Layout.preferredWidth: 1
+                                implicitHeight: root.baseFontSize + 14
+                                radius: 8
+                                color: container.tileColor("#1e222d")
 
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 6
-                                anchors.rightMargin: 6
-                                spacing: 4
-                                Image {
-                                    source: Qt.resolvedUrl("../icons/dropbox.svg")
-                                    Layout.preferredWidth: root.baseFontSize + 1
-                                    Layout.preferredHeight: root.baseFontSize + 1
-                                    sourceSize.width: 32
-                                    sourceSize.height: 32
-                                    fillMode: Image.PreserveAspectFit
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 8
+                                    anchors.rightMargin: 8
+                                    spacing: 7
+                                    Image {
+                                        source: Qt.resolvedUrl("../icons/" + modelData.icon)
+                                        Layout.preferredWidth: root.baseFontSize + 3
+                                        Layout.preferredHeight: root.baseFontSize + 3
+                                        sourceSize: Qt.size(48, 48)
+                                        fillMode: Image.PreserveAspectFit
+                                        smooth: true
+                                        opacity: modelData.ok ? 1.0 : 0.5
+                                    }
+                                    Text {
+                                        text: modelData.name
+                                        color: modelData.ok ? "#e6ebf2" : "#8b99ad"
+                                        font.pixelSize: root.baseFontSize - 1
+                                        font.bold: true
+                                        elide: Text.ElideRight
+                                        Layout.fillWidth: true
+                                    }
+                                    Text {
+                                        text: modelData.ok ? modelData.on : modelData.off
+                                        color: modelData.ok ? "#4ade80" : "#8b99ad"
+                                        font.pixelSize: root.baseFontSize - 3
+                                        font.bold: true
+                                    }
                                 }
-                                Text {
-                                    text: "Dropbox"
-                                    color: "#cfd8dc"
-                                    font.pixelSize: root.baseFontSize - 2
-                                    font.bold: true
-                                    elide: Text.ElideRight
-                                    Layout.maximumWidth: parent.width * 0.55
-                                }
-                                Item { Layout.fillWidth: true }
-                                Text {
-                                    text: (container.monitorData.services && container.monitorData.services.dropbox) ? "ACTIVE" : "OFF"
-                                    color: (container.monitorData.services && container.monitorData.services.dropbox) ? "#00e676" : "#78909c"
-                                    font.pixelSize: root.baseFontSize - 3
-                                    font.bold: true
-                                }
-                            }
-                        }
-
-                        // Rclone
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: root.baseFontSize + 14
-                            radius: 8
-                            color: container.tileColor("#1e222d")
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 6
-                                anchors.rightMargin: 6
-                                spacing: 4
-                                Kirigami.Icon {
-                                    source: "folder-gdrive"
-                                    Layout.preferredWidth: root.baseFontSize + 1
-                                    Layout.preferredHeight: root.baseFontSize + 1
-                                }
-                                Text {
-                                    text: "Rclone"
-                                    color: "#cfd8dc"
-                                    font.pixelSize: root.baseFontSize - 2
-                                    font.bold: true
-                                    elide: Text.ElideRight
-                                    Layout.maximumWidth: parent.width * 0.55
-                                }
-                                Item { Layout.fillWidth: true }
-                                Text {
-                                    text: (container.monitorData.services && container.monitorData.services.rclone) ? "ACTIVE" : "OFF"
-                                    color: (container.monitorData.services && container.monitorData.services.rclone) ? "#00e676" : "#78909c"
-                                    font.pixelSize: root.baseFontSize - 3
-                                    font.bold: true
-                                }
-                            }
-                        }
-
-                        // Tailscale
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: root.baseFontSize + 14
-                            radius: 8
-                            color: container.tileColor("#1e222d")
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 6
-                                anchors.rightMargin: 6
-                                spacing: 4
-                                Kirigami.Icon {
-                                    source: "network-vpn"
-                                    Layout.preferredWidth: root.baseFontSize + 1
-                                    Layout.preferredHeight: root.baseFontSize + 1
-                                }
-                                Text {
-                                    text: "Tailscale"
-                                    color: "#cfd8dc"
-                                    font.pixelSize: root.baseFontSize - 2
-                                    font.bold: true
-                                    elide: Text.ElideRight
-                                    Layout.maximumWidth: parent.width * 0.55
-                                }
-                                Item { Layout.fillWidth: true }
-                                Text {
-                                    text: (container.monitorData.services && container.monitorData.services.tailscale) ? "ONLINE" : "OFF"
-                                    color: (container.monitorData.services && container.monitorData.services.tailscale) ? "#00e676" : "#78909c"
-                                    font.pixelSize: root.baseFontSize - 3
-                                    font.bold: true
-                                }
-                            }
-                        }
-                    }
-
-                    // Tmux Bar
-                    Rectangle {
-                        Layout.fillWidth: true
-                        height: root.baseFontSize + 14
-                        radius: 8
-                        color: container.tileColor("#1e222d")
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 6
-                            anchors.rightMargin: 6
-                            spacing: 4
-                            Kirigami.Icon {
-                                source: "utilities-terminal"
-                                Layout.preferredWidth: root.baseFontSize + 1
-                                Layout.preferredHeight: root.baseFontSize + 1
-                            }
-                            Text { text: "Tmux Sessions"; color: "#cfd8dc"; font.pixelSize: root.baseFontSize - 2; font.bold: true }
-                            Item { Layout.fillWidth: true }
-                            Text {
-                                text: (container.monitorData.services && container.monitorData.services.tmux_sessions > 0) ? (container.monitorData.services.tmux_sessions + " Active") : "No Session"
-                                color: (container.monitorData.services && container.monitorData.services.tmux_sessions > 0) ? "#00e676" : "#78909c"
-                                font.pixelSize: root.baseFontSize - 3
-                                font.bold: true
                             }
                         }
                     }
@@ -930,7 +902,10 @@ PlasmoidItem {
                 d: container.monitorData
                 connected: container.isConnected
                 glass: root.effectiveGlassMode
+                ejectState: container.ejectState
+                notice: container.ejectNotice
                 onRestoreRequested: root.setDeckFullscreen(false)
+                onEjectRequested: (mount) => container.ejectDrive(mount)
             }
         }
     }

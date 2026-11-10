@@ -15,12 +15,20 @@ It returns cached JSON and refreshes metrics roughly every two seconds. A succes
 | `memory` | `percent`, `used_gb`, and `total_gb`. |
 | `storage` | `/home` usage: `percent`, `used_gb`, `total_gb`, and `free_gb`. |
 | `sdcard` | `mounted`, optional `mount`, and capacity fields when mounted. |
-| `external_drives` | Array of connected external-drive objects. |
+| `external_drives` | Array of mounted external partitions: `name`, `mount`, `device`, `percent`, `used_gb`, `total_gb`, `free_gb`. |
 | `battery` | Charge percentage, charging state, health, and power flags. |
 | `temp` | Highest eligible APU-related sensor, formatted as e.g. `"71°C"`, or `"N/A"`. |
 | `wifi` | Active connection name, connected/tethering flags, and an icon name. |
 | `services` | Boolean probes for Syncthing, Dropbox, Rclone, and Tailscale; plus `tmux_sessions`. |
 | `ping` | Ping to `1.1.1.1`, formatted e.g. `"23.4 ms"`, or `"Offline"`. |
+
+## Ejecting an external drive
+
+```text
+POST http://127.0.0.1:19842/eject   {"mount": "/run/media/deck/<label>"}
+```
+
+Unmounts that partition via `udisksctl`, then powers the drive off once none of its partitions remain mounted. Only mounts listed in `external_drives` are accepted (internal SSD and microSD return 404). Responses: `200 {"ok": true, "powered_off": bool, "message": "Safe to remove" | "Unmounted"}`, `409 {"ok": false, "error": "Drive busy, close apps using it"}` when files are in use. This changes system state, so only call it when the user asks to eject.
 
 ## Availability checks
 

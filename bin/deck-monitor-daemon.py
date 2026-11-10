@@ -6,7 +6,7 @@ import json
 import shutil
 import threading
 import subprocess
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 import socket
 
 CACHE_DATA = {}
@@ -167,6 +167,7 @@ class MetricCollector:
                                 drives.append({
                                     'name': drive_name,
                                     'mount': target,
+                                    'device': real_src,
                                     'percent': pct,
                                     'used_gb': round(used / (1024**3), 1),
                                     'total_gb': round(total / (1024**3), 1),
@@ -414,6 +415,47 @@ class MetricCollector:
             'ping': self.get_ping()
         }
 
+def parent_disk(dev):
+    """/dev/sda1 -> /dev/sda, /dev/nvme1n1p2 -> /dev/nvme1n1 (via sysfs)."""
+    name = os.path.basename(dev)
+    sys_path = f'/sys/class/block/{name}'
+    if os.path.exists(os.path.join(sys_path, 'partition')):
+        return '/dev/' + os.path.basename(os.path.dirname(os.path.realpath(sys_path)))
+    return dev
+
+def eject_mount(mount):
+    """Unmount one external partition; power the drive off once none of its partitions are mounted."""
+    drive = next((d for d in MetricCollector().get_external_drives() if d['mount'] == mount), None)
+    if not drive:
+        return 404, {'ok': False, 'error': 'Not an external drive'}
+    dev = drive['device']
+    res = subprocess.run(['udisksctl', 'unmount', '-b', dev, '--no-user-interaction'],
+                         capture_output=True, text=True, timeout=60)
+    if res.returncode != 0:
+        err = (res.stderr or res.stdout).strip()
+        if 'busy' in err.lower():
+            err = 'Drive busy, close apps using it'
+        return 409, {'ok': False, 'error': err.splitlines()[-1] if err else 'Unmount failed'}
+
+    disk = parent_disk(dev)
+    still_mounted = False
+    try:
+        with open('/proc/mounts') as f:
+            for line in f:
+                src = os.path.realpath(line.split()[0])
+                if src.startswith('/dev/') and parent_disk(src) == disk:
+                    still_mounted = True
+                    break
+    except Exception:
+        still_mounted = True
+    powered_off = False
+    if not still_mounted:
+        po = subprocess.run(['udisksctl', 'power-off', '-b', disk, '--no-user-interaction'],
+                            capture_output=True, text=True, timeout=30)
+        powered_off = po.returncode == 0
+    return 200, {'ok': True, 'powered_off': powered_off,
+                 'message': 'Safe to remove' if powered_off or not still_mounted else 'Unmounted'}
+
 def update_loop():
     global CACHE_DATA
     collector = MetricCollector()
@@ -439,10 +481,29 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
 
+    def do_POST(self):
+        if self.path != '/eject':
+            self.send_response(404)
+            self.end_headers()
+            return
+        try:
+            length = int(self.headers.get('Content-Length', 0))
+            mount = json.loads(self.rfile.read(length) or b'{}').get('mount', '')
+            code, payload = eject_mount(mount)
+        except Exception as e:
+            code, payload = 500, {'ok': False, 'error': str(e)}
+        body = json.dumps(payload).encode('utf-8')
+        self.send_response(code)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def log_message(self, format, *args):
         pass
 
-class ReusableHTTPServer(HTTPServer):
+class ReusableHTTPServer(ThreadingHTTPServer):
+    daemon_threads = True
     allow_reuse_address = True
     def server_bind(self):
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
