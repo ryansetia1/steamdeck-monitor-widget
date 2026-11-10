@@ -21,6 +21,7 @@ It returns cached JSON and refreshes metrics roughly every two seconds. A succes
 | `wifi` | Active connection name, connected/tethering flags, and an icon name. |
 | `services` | Boolean probes for Syncthing, Dropbox, Rclone, and Tailscale; plus `tmux_sessions`. |
 | `ping` | Ping to `1.1.1.1`, formatted e.g. `"23.4 ms"`, or `"Offline"`. |
+| `prefs` | Preferences shared by all widget instances, e.g. `external_mode` (0 = hide on external monitors while the Deck screen is on, 1 = always show, 2 = never show). Empty until set. |
 
 ## Ejecting an external drive
 
@@ -29,6 +30,14 @@ POST http://127.0.0.1:19842/eject   {"mount": "/run/media/deck/<label>"}
 ```
 
 Unmounts that partition via `udisksctl`, then powers the drive off once none of its partitions remain mounted. Only mounts listed in `external_drives` are accepted (internal SSD and microSD return 404). Responses: `200 {"ok": true, "powered_off": bool, "message": "Safe to remove" | "Unmounted"}`, `409 {"ok": false, "error": "Drive busy, close apps using it"}` when files are in use. This changes system state, so only call it when the user asks to eject.
+
+## Shared preferences
+
+```text
+POST http://127.0.0.1:19842/prefs   {"external_mode": 0 | 1 | 2}
+```
+
+Stored in `~/.config/deck-monitor/prefs.json`. The widget settings page writes this on Apply; unknown keys or values are rejected with 400.
 
 ## Availability checks
 

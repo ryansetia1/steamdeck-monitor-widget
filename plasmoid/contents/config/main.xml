@@ -18,6 +18,10 @@
       <label>Glass background opacity (percent)</label>
       <default>55</default>
     </entry>
+    <entry name="showOnExternal" type="Bool">
+      <label>Show the widget on monitors other than the Steam Deck screen</label>
+      <default>true</default>
+    </entry>
     <entry name="autoScreenMigrate" type="Bool">
       <label>Automatically move widget to Steam Deck screen when dual displays are active</label>
       <default>true</default>

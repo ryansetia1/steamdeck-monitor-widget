@@ -12,6 +12,7 @@ PlasmoidItem {
     property bool glassMode: Plasmoid.configuration ? Plasmoid.configuration.backgroundStyle === 1 : false
     property real glassOpacity: ((Plasmoid.configuration && Plasmoid.configuration.glassOpacity) || 55) / 100
     property int baseFontSize: (Plasmoid.configuration && Plasmoid.configuration.fontSizeScale) || 12
+    property bool showOnExternal: (Plasmoid.configuration && Plasmoid.configuration.showOnExternal !== undefined) ? Plasmoid.configuration.showOnExternal : true
     property bool autoScreenMigrate: (Plasmoid.configuration && Plasmoid.configuration.autoScreenMigrate !== undefined) ? Plasmoid.configuration.autoScreenMigrate : true
     property bool deckFullscreen: (Plasmoid.configuration && Plasmoid.configuration.deckFullscreen !== undefined) ? Plasmoid.configuration.deckFullscreen : true
     property bool deckSolidBg: (Plasmoid.configuration && Plasmoid.configuration.deckSolidBg !== undefined) ? Plasmoid.configuration.deckSolidBg : true
@@ -20,8 +21,17 @@ PlasmoidItem {
     property bool isDualScreenActive: false
     property bool shouldBeVisible: true
 
-    readonly property bool isFullscreenDashboard: root.isOnDeckScreen && root.deckFullscreen
-    readonly property bool effectiveGlassMode: (root.isOnDeckScreen && root.deckSolidBg) ? false : root.glassMode
+    // "Docked" = this widget is on the Deck panel while an external monitor is also connected.
+    // In handheld mode the Deck panel takes over screen 0, so the desktop (and its small
+    // floating widget) that normally lives on the external monitor appears there instead;
+    // dock-only layouts must not kick in for that widget.
+    readonly property bool isDocked: root.isOnDeckScreen && root.isDualScreenActive
+    // Only use the dashboard when this widget actually covers (most of) the screen. Plasma can hand
+    // the Deck panel a desktop whose widget is a small floating card (e.g. when the Deck screen is
+    // made primary while docked); that one stays a floating card instead of a squeezed dashboard.
+    readonly property bool fillsScreen: root.width >= root.Screen.width * 0.75 && root.height >= root.Screen.height * 0.75
+    readonly property bool isFullscreenDashboard: root.isDocked && root.deckFullscreen && root.fillsScreen
+    readonly property bool effectiveGlassMode: (root.isDocked && root.deckSolidBg) ? false : root.glassMode
 
     readonly property int compactWidth: 320 + (baseFontSize - 12) * 15
     property int extDriveCount: 0
@@ -44,34 +54,43 @@ PlasmoidItem {
 
     visible: shouldBeVisible
 
+    // External-monitor behaviour: 0 = hide while the Deck screen is on, 1 = always show, 2 = never show.
+    // The daemon holds the shared value so a change made in one widget's settings also reaches
+    // widgets that are currently hidden (and so can't be right-clicked). Local config is the fallback.
+    property int sharedExternalMode: -1
+    readonly property int externalMode: sharedExternalMode >= 0 ? sharedExternalMode
+        : (!showOnExternal ? 2 : (autoScreenMigrate ? 0 : 1))
+    onExternalModeChanged: updateScreenState()
+
     function updateScreenState() {
         var screens = Qt.application.screens;
         var hasEdp = false;
         var hasExt = false;
-        var edpScreenIndex = -1;
 
         if (screens && screens.length > 0) {
             for (var i = 0; i < screens.length; i++) {
                 var s = screens[i];
                 if (s && s.name && s.name.toLowerCase().indexOf("edp") !== -1) {
                     hasEdp = true;
-                    edpScreenIndex = i;
                 } else if (s && s.name) {
                     hasExt = true;
                 }
             }
         }
 
+        // Plasma's containment screen numbers and Qt's screen list use different orderings, so
+        // only trust the screen name. While it is not known yet (e.g. mid-hotplug), keep the last
+        // value; the 2s timer re-checks.
         var scrName = (root.Screen && root.Screen.name) ? root.Screen.name : "";
         if (scrName.length > 0) {
             root.isOnDeckScreen = scrName.toLowerCase().indexOf("edp") !== -1;
-        } else if (Plasmoid.containment && edpScreenIndex !== -1) {
-            root.isOnDeckScreen = (Plasmoid.containment.screen === edpScreenIndex);
         }
 
         root.isDualScreenActive = (hasEdp && hasExt);
 
-        if (root.autoScreenMigrate && root.isDualScreenActive) {
+        if (root.externalMode === 2 && !root.isOnDeckScreen) {
+            root.shouldBeVisible = false;
+        } else if (root.externalMode === 0 && root.isDualScreenActive) {
             root.shouldBeVisible = root.isOnDeckScreen;
         } else {
             root.shouldBeVisible = true;
@@ -174,16 +193,34 @@ PlasmoidItem {
         }
         Timer { id: noticeTimer; interval: 6000; onTriggered: container.ejectNotice = "" }
 
+        function applyPrefs(prefs) {
+            prefs = prefs || {};
+            root.sharedExternalMode = (prefs.external_mode !== undefined) ? prefs.external_mode : -1;
+        }
+
+        function fetchPrefs() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "http://127.0.0.1:19842/prefs");
+            xhr.timeout = 1800;
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                    try { container.applyPrefs(JSON.parse(xhr.responseText).prefs); } catch (e) {}
+                }
+            };
+            xhr.send();
+        }
+
         function fetchMetrics() {
             var xhr = new XMLHttpRequest();
             xhr.open("GET", "http://127.0.0.1:19842/status");
-            xhr.timeout = 1800;
+            xhr.timeout = 3500;   // the daemon may need ~0.5s to wake up after being idle
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === XMLHttpRequest.DONE) {
                     if (xhr.status === 200) {
                         try {
                             container.monitorData = JSON.parse(xhr.responseText);
                             root.extDriveCount = (container.monitorData.external_drives || []).length;
+                            container.applyPrefs(container.monitorData.prefs);
                             container.isConnected = true;
                         } catch (e) {
                             container.isConnected = false;
@@ -242,11 +279,12 @@ PlasmoidItem {
 
         Timer {
             id: pollTimer
-            interval: 2000
-            running: root.shouldBeVisible
+            // keep polling slowly while hidden so shared prefs can bring the widget back
+            interval: root.shouldBeVisible ? 2000 : 5000
+            running: true
             repeat: true
             triggeredOnStart: true
-            onTriggered: container.fetchMetrics()
+            onTriggered: root.shouldBeVisible ? container.fetchMetrics() : container.fetchPrefs()
         }
 
         Connections {
@@ -273,10 +311,16 @@ PlasmoidItem {
             border.width: root.isFullscreenDashboard ? 0 : 1
             clip: true
 
+            // Only the view that is actually shown gets instantiated; the other one (and both,
+            // while the widget is hidden) costs no memory and no per-poll binding updates.
+
             // --- COMPACT VIEW (FLOATING CARD) ---
+            Loader {
+                anchors.fill: parent
+                active: root.shouldBeVisible && !root.isFullscreenDashboard
+                sourceComponent: Component {
             ColumnLayout {
                 id: compactView
-                visible: !root.isFullscreenDashboard
                 anchors.fill: parent
                 anchors.margins: 12
                 spacing: 9
@@ -334,9 +378,9 @@ PlasmoidItem {
                         }
                     }
 
-                    // Fullscreen Dashboard Toggle Button (Active on Steam Deck Screen)
+                    // Fullscreen Dashboard Toggle Button (only while docked, on a full-screen widget)
                     Rectangle {
-                        visible: root.isOnDeckScreen
+                        visible: root.isDocked && root.fillsScreen
                         color: container.tileColor("#212532")
                         radius: 8
                         height: root.baseFontSize + 10
@@ -893,19 +937,24 @@ PlasmoidItem {
                     }
                 }
             }
+                }
+            }
 
             // --- FULLSCREEN DASHBOARD VIEW (Steam Deck panel, 1280x800) ---
-            DashboardView {
-                id: dashboardView
-                visible: root.isFullscreenDashboard
+            Loader {
                 anchors.fill: parent
-                d: container.monitorData
-                connected: container.isConnected
-                glass: root.effectiveGlassMode
-                ejectState: container.ejectState
-                notice: container.ejectNotice
-                onRestoreRequested: root.setDeckFullscreen(false)
-                onEjectRequested: (mount) => container.ejectDrive(mount)
+                active: root.shouldBeVisible && root.isFullscreenDashboard
+                sourceComponent: Component {
+                    DashboardView {
+                        d: container.monitorData
+                        connected: container.isConnected
+                        glass: root.effectiveGlassMode
+                        ejectState: container.ejectState
+                        notice: container.ejectNotice
+                        onRestoreRequested: root.setDeckFullscreen(false)
+                        onEjectRequested: (mount) => container.ejectDrive(mount)
+                    }
+                }
             }
         }
     }

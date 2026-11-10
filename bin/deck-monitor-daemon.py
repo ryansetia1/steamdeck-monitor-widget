@@ -8,9 +8,39 @@ import threading
 import subprocess
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 import socket
+import struct
 
 CACHE_DATA = {}
 LOCK = threading.Lock()
+
+# Preferences shared by every widget instance (each Plasma widget has its own config,
+# but e.g. "show on external monitors" must also reach a widget that is currently hidden).
+PREFS_PATH = os.path.expanduser('~/.config/deck-monitor/prefs.json')
+PREFS_SCHEMA = {'external_mode': (0, 1, 2)}   # 0 = hide while Deck screen on, 1 = always show, 2 = never show
+
+def load_prefs():
+    try:
+        with open(PREFS_PATH) as f:
+            data = json.load(f)
+        return {k: v for k, v in data.items() if k in PREFS_SCHEMA and v in PREFS_SCHEMA[k]}
+    except Exception:
+        return {}
+
+PREFS = load_prefs()
+
+def save_prefs(update):
+    clean = {k: v for k, v in update.items() if k in PREFS_SCHEMA and v in PREFS_SCHEMA[k]}
+    if not clean:
+        return False
+    with LOCK:
+        PREFS.update(clean)
+        snapshot = dict(PREFS)
+    os.makedirs(os.path.dirname(PREFS_PATH), exist_ok=True)
+    tmp = PREFS_PATH + '.tmp'
+    with open(tmp, 'w') as f:
+        json.dump(snapshot, f)
+    os.replace(tmp, PREFS_PATH)
+    return True
 
 class MetricCollector:
     def __init__(self):
@@ -350,32 +380,49 @@ class MetricCollector:
 
         return False
 
-    def get_services(self):
-        syncthing = False
-        try:
-            syncthing = subprocess.run(['pgrep', '-f', 'syncthing'], stdout=subprocess.DEVNULL, timeout=1.0).returncode == 0
-        except Exception:
-            pass
+    @staticmethod
+    def _running(words):
+        """Same match as `pgrep -f <word>` for several words, in one pass over /proc (no subprocesses)."""
+        found = set()
+        me = str(os.getpid())
+        for pid in os.listdir('/proc'):
+            if not pid.isdigit() or pid == me:
+                continue
+            try:
+                with open(f'/proc/{pid}/cmdline', 'rb') as f:
+                    cmd = f.read().replace(b'\0', b' ')
+            except OSError:
+                continue
+            for w in words:
+                if w in cmd:
+                    found.add(w)
+            if len(found) == len(words):
+                break
+        return found
 
-        dropbox = False
+    @staticmethod
+    def _tmux_sessions():
+        # Skip spawning tmux entirely when no tmux server socket exists
+        sock_dir = os.path.join(os.environ.get('TMUX_TMPDIR', '/tmp'), f'tmux-{os.getuid()}')
         try:
-            dropbox = subprocess.run(['pgrep', '-f', 'dropbox'], stdout=subprocess.DEVNULL, timeout=1.0).returncode == 0
-        except Exception:
-            pass
-
-        rclone = False
-        try:
-            rclone = subprocess.run(['pgrep', '-f', 'rclone'], stdout=subprocess.DEVNULL, timeout=1.0).returncode == 0
-        except Exception:
-            pass
-
-        tmux_count = 0
+            if not any(os.path.exists(os.path.join(sock_dir, n)) for n in os.listdir(sock_dir)):
+                return 0
+        except OSError:
+            return 0
         try:
             res = subprocess.run(['tmux', 'ls'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=1.0, text=True)
             if res.returncode == 0 and res.stdout:
-                tmux_count = len([l for l in res.stdout.strip().splitlines() if l.strip()])
+                return len([l for l in res.stdout.strip().splitlines() if l.strip()])
         except Exception:
-            tmux_count = 0
+            pass
+        return 0
+
+    def get_services(self):
+        running = self._running((b'syncthing', b'dropbox', b'rclone'))
+        syncthing = b'syncthing' in running
+        dropbox = b'dropbox' in running
+        rclone = b'rclone' in running
+        tmux_count = self._tmux_sessions()
 
         tailscale = self._check_tailscale()
 
@@ -387,7 +434,53 @@ class MetricCollector:
             'tailscale': tailscale
         }
 
+    _ping_seq = 0
+
+    @staticmethod
+    def _icmp_checksum(data):
+        if len(data) % 2:
+            data += b'\0'
+        total = sum(struct.unpack(f'!{len(data) // 2}H', data))
+        total = (total >> 16) + (total & 0xFFFF)
+        total += total >> 16
+        return ~total & 0xFFFF
+
+    def _icmp_ping(self, host, timeout=2.0):
+        """Echo request over an unprivileged ICMP datagram socket. Returns ms or None."""
+        MetricCollector._ping_seq = (MetricCollector._ping_seq + 1) & 0xFFFF
+        seq = MetricCollector._ping_seq
+        payload = b'deck-monitor'
+        header = struct.pack('!BBHHH', 8, 0, 0, 0, seq)
+        packet = struct.pack('!BBHHH', 8, 0, self._icmp_checksum(header + payload), 0, seq) + payload
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_ICMP) as s:
+            start = time.monotonic()
+            deadline = start + timeout
+            s.sendto(packet, (host, 0))
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    return None
+                s.settimeout(remaining)
+                try:
+                    data, _ = s.recvfrom(1024)
+                except socket.timeout:
+                    return None
+                if len(data) >= 8 and data[0] == 0 and struct.unpack('!H', data[6:8])[0] == seq:
+                    return (time.monotonic() - start) * 1000.0
+
     def get_ping(self):
+        for target in ['1.1.1.1', '8.8.8.8']:
+            try:
+                ms = self._icmp_ping(target)
+                if ms is not None:
+                    return f"{round(ms, 1)} ms"
+            except PermissionError:
+                return self._ping_subprocess()
+            except OSError:
+                pass
+        return "Offline"
+
+    def _ping_subprocess(self):
         for target in ['1.1.1.1', '8.8.8.8']:
             try:
                 res = subprocess.run(['ping', '-c', '1', '-W', '2', target], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=2.5, text=True)
@@ -400,7 +493,8 @@ class MetricCollector:
                 pass
         return "Offline"
 
-    def collect_all(self):
+    def collect_fast(self):
+        # Cheap /proc + /sys reads: refreshed every cycle
         return {
             'timestamp': int(time.time()),
             'cpu_percent': self.get_cpu(),
@@ -410,10 +504,17 @@ class MetricCollector:
             'external_drives': self.get_external_drives(),
             'battery': self.get_battery(),
             'temp': self.get_temperature(),
+        }
+
+    def collect_slow(self):
+        # Spawns nmcli / talks to tailscaled: these change rarely
+        return {
             'wifi': self.get_wifi(),
             'services': self.get_services(),
-            'ping': self.get_ping()
         }
+
+    def collect_all(self):
+        return dict(self.collect_fast(), **self.collect_slow(), ping=self.get_ping())
 
 def parent_disk(dev):
     """/dev/sda1 -> /dev/sda, /dev/nvme1n1p2 -> /dev/nvme1n1 (via sysfs)."""
@@ -456,20 +557,78 @@ def eject_mount(mount):
     return 200, {'ok': True, 'powered_off': powered_off,
                  'message': 'Safe to remove' if powered_off or not still_mounted else 'Unmounted'}
 
+FAST_INTERVAL = 2.0     # cpu / memory / battery / temp / drives
+SLOW_INTERVAL = 10.0    # wifi + services
+PING_INTERVAL = 2.0
+IDLE_AFTER = 20.0       # stop sampling when nobody has asked for /status this long
+STALE_AFTER = 5.0       # a /status request older data than this waits briefly for a fresh sample
+
+LAST_STATUS_REQUEST = 0.0
+WAKE = threading.Event()
+FRESH = threading.Condition(LOCK)
+
+def is_active():
+    return time.time() - LAST_STATUS_REQUEST < IDLE_AFTER
+
 def update_loop():
     global CACHE_DATA
     collector = MetricCollector()
+    slow = {}
+    last_slow = 0.0
+    was_idle = True
     while True:
-        data = collector.collect_all()
-        with LOCK:
+        if not is_active():
+            was_idle = True
+            WAKE.wait()            # sleep until a client asks for /status
+            WAKE.clear()
+            continue
+        if was_idle:
+            # CPU% is a delta: re-baseline so the first sample isn't an average over the idle gap
+            collector._init_cpu()
+            time.sleep(0.5)
+            was_idle = False
+            last_slow = 0.0
+        data = collector.collect_fast()
+        now = time.monotonic()
+        if now - last_slow >= SLOW_INTERVAL:
+            slow = collector.collect_slow()
+            last_slow = now
+        data.update(slow)
+        with FRESH:
+            data['ping'] = CACHE_DATA.get('ping', '...')
             CACHE_DATA = data
-        time.sleep(2.0)
+            FRESH.notify_all()
+        WAKE.wait(FAST_INTERVAL)
+        WAKE.clear()
+
+def ping_loop():
+    collector = MetricCollector()
+    while True:
+        if is_active():
+            value = collector.get_ping()
+            with LOCK:
+                CACHE_DATA['ping'] = value
+        time.sleep(PING_INTERVAL)
+
+def get_status():
+    """Return the cached sample, waking the collector (and waiting up to 3s) if it is idle or stale."""
+    global LAST_STATUS_REQUEST
+    LAST_STATUS_REQUEST = time.time()
+    with FRESH:
+        if time.time() - CACHE_DATA.get('timestamp', 0) > STALE_AFTER:
+            WAKE.set()
+            FRESH.wait_for(lambda: time.time() - CACHE_DATA.get('timestamp', 0) <= STALE_AFTER, timeout=3.0)
+        return dict(CACHE_DATA, prefs=dict(PREFS))
 
 class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path in ('/status', '/', '/api'):
-            with LOCK:
-                body = json.dumps(CACHE_DATA).encode('utf-8')
+        if self.path in ('/status', '/', '/api', '/prefs'):
+            if self.path == '/prefs':
+                # cheap endpoint for hidden widgets; does not keep the collector awake
+                with LOCK:
+                    body = json.dumps({'prefs': dict(PREFS)}).encode('utf-8')
+            else:
+                body = json.dumps(get_status()).encode('utf-8')
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Content-Length', str(len(body)))
@@ -482,14 +641,18 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def do_POST(self):
-        if self.path != '/eject':
+        if self.path not in ('/eject', '/prefs'):
             self.send_response(404)
             self.end_headers()
             return
         try:
             length = int(self.headers.get('Content-Length', 0))
-            mount = json.loads(self.rfile.read(length) or b'{}').get('mount', '')
-            code, payload = eject_mount(mount)
+            req = json.loads(self.rfile.read(length) or b'{}')
+            if self.path == '/prefs':
+                ok = save_prefs(req)
+                code, payload = (200 if ok else 400), {'ok': ok, 'prefs': dict(PREFS)}
+            else:
+                code, payload = eject_mount(req.get('mount', ''))
         except Exception as e:
             code, payload = 500, {'ok': False, 'error': str(e)}
         body = json.dumps(payload).encode('utf-8')
@@ -514,8 +677,8 @@ class ReusableHTTPServer(ThreadingHTTPServer):
         super().server_bind()
 
 def main():
-    t = threading.Thread(target=update_loop, daemon=True)
-    t.start()
+    threading.Thread(target=update_loop, daemon=True).start()
+    threading.Thread(target=ping_loop, daemon=True).start()
     
     server_address = ('127.0.0.1', 19842)
     httpd = ReusableHTTPServer(server_address, RequestHandler)
