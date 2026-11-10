@@ -22,5 +22,13 @@
       <label>Automatically move widget to Steam Deck screen when dual displays are active</label>
       <default>true</default>
     </entry>
+    <entry name="deckFullscreen" type="Bool">
+      <label>Fullscreen dashboard layout on Steam Deck screen</label>
+      <default>true</default>
+    </entry>
+    <entry name="deckSolidBg" type="Bool">
+      <label>Force solid background on Steam Deck screen</label>
+      <default>true</default>
+    </entry>
   </group>
 </kcfg>

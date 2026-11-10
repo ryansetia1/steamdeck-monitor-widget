@@ -11,6 +11,8 @@ KCMUtils.SimpleKCM {
     property alias cfg_backgroundStyle: styleBox.currentIndex
     property alias cfg_glassOpacity: opacitySlider.value
     property alias cfg_autoScreenMigrate: autoScreenCheck.checked
+    property alias cfg_deckFullscreen: deckFullscreenCheck.checked
+    property alias cfg_deckSolidBg: deckSolidBgCheck.checked
 
     Kirigami.FormLayout {
         RowLayout {
@@ -79,6 +81,36 @@ KCMUtils.SimpleKCM {
 
         QQC2.Label {
             text: i18n("When docked and the Steam Deck screen is ON, automatically shows widget on the Deck screen to keep external monitor clean. When Deck screen is OFF, moves back to external monitor.")
+            color: Kirigami.Theme.disabledTextColor
+            font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+        }
+
+        Item { Kirigami.FormData.isSection: true }
+
+        QQC2.CheckBox {
+            id: deckFullscreenCheck
+            Kirigami.FormData.label: i18n("Deck Screen Layout:")
+            text: i18n("Use Fullscreen Dashboard layout on Steam Deck screen (1280x800)")
+        }
+
+        QQC2.Label {
+            text: i18n("Expands the widget into a full 3-column hardware monitoring dashboard on the Steam Deck screen. You can also toggle this instantly with the button on the widget header.")
+            color: Kirigami.Theme.disabledTextColor
+            font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+        }
+
+        QQC2.CheckBox {
+            id: deckSolidBgCheck
+            Kirigami.FormData.label: i18n("Deck Screen Background:")
+            text: i18n("Always use solid background on Steam Deck screen")
+        }
+
+        QQC2.Label {
+            text: i18n("Ensures maximum contrast and crisp readability on the Steam Deck screen while docked on your desk.")
             color: Kirigami.Theme.disabledTextColor
             font.pixelSize: Kirigami.Theme.smallFont.pixelSize
             Layout.fillWidth: true

@@ -26,6 +26,14 @@
   - Perfect for using the Steam Deck as a daily driver PC on a dock!
   - When docked and the Steam Deck's built-in screen is turned **ON**, the monitor widget automatically moves to the Steam Deck screen, keeping your main external monitor clean and uncluttered.
   - When the Steam Deck's screen is turned **OFF** (or undocked), the widget seamlessly returns to its original position on the primary monitor.
+- **Dedicated Fullscreen Widescreen Dashboard (1280x800)**:
+  - Turns your docked Steam Deck into a dedicated secondary hardware monitoring display on your desk!
+  - Expands into a rich 3-column layout:
+    - **Compute & Storage**: High-visibility Zen 2 APU CPU %, LPDDR5 RAM %, NVMe `/home`, MicroSD, and USB drives.
+    - **Thermals & Power (Center Stage)**: Massive APU core temperature readout (`48px`) with color shifting and gauge bar, alongside battery status, charging source, and true battery health.
+    - **Network & Ecosystem Daemons**: Real-time Wi-Fi/Hotspot info, Cloudflare DNS latency ping badge, and status indicators for Syncthing, Dropbox, Rclone, Tailscale, and Tmux sessions.
+  - Defaults to a sleek, high-contrast **Solid Dark** theme on the Deck screen for optimal readability.
+  - **Quick Toggle Button**: Seamlessly toggle between Fullscreen Dashboard and Compact floating mode via the header button (`🗖` / `🗗`) or through the widget appearance settings.
 - **Clean Minimalist Design**:
   - Official Steam Deck branding with connection status indicator.
   - Borderless APU temperature and battery gauges with subtle vertical separator lines.
