@@ -1095,13 +1095,15 @@ PlasmoidItem {
 
                                 Rectangle {
                                     Layout.fillWidth: true
-                                    height: 10
-                                    radius: 5
-                                    color: container.tileColor("#242936")
+                                    height: 18
+                                    radius: 9
+                                    color: container.tileColor("#131620")
+                                    border.color: container.tileColor("#282e3e")
+                                    border.width: 1
                                     Rectangle {
                                         width: Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.cpu_percent || 0) / 100.0)))
                                         height: parent.height
-                                        radius: 5
+                                        radius: 9
                                         color: container.getBarColor(container.monitorData.cpu_percent || 0)
                                         Behavior on width { NumberAnimation { duration: 250 } }
                                     }
@@ -1142,13 +1144,15 @@ PlasmoidItem {
 
                                 Rectangle {
                                     Layout.fillWidth: true
-                                    height: 10
-                                    radius: 5
-                                    color: container.tileColor("#242936")
+                                    height: 18
+                                    radius: 9
+                                    color: container.tileColor("#131620")
+                                    border.color: container.tileColor("#282e3e")
+                                    border.width: 1
                                     Rectangle {
                                         width: Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.memory.percent || 0) / 100.0)))
                                         height: parent.height
-                                        radius: 5
+                                        radius: 9
                                         color: container.getBarColor(container.monitorData.memory.percent || 0)
                                         Behavior on width { NumberAnimation { duration: 250 } }
                                     }
@@ -1194,13 +1198,15 @@ PlasmoidItem {
 
                                     Rectangle {
                                         Layout.fillWidth: true
-                                        height: 8
-                                        radius: 4
-                                        color: container.tileColor("#242936")
+                                        height: 16
+                                        radius: 8
+                                        color: container.tileColor("#131620")
+                                        border.color: container.tileColor("#282e3e")
+                                        border.width: 1
                                         Rectangle {
                                             width: Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.storage.percent || 0) / 100.0)))
                                             height: parent.height
-                                            radius: 4
+                                            radius: 8
                                             color: container.getBarColor(container.monitorData.storage.percent || 0)
                                             Behavior on width { NumberAnimation { duration: 250 } }
                                         }
@@ -1226,13 +1232,15 @@ PlasmoidItem {
 
                                     Rectangle {
                                         Layout.fillWidth: true
-                                        height: 8
-                                        radius: 4
-                                        color: container.tileColor("#242936")
+                                        height: 16
+                                        radius: 8
+                                        color: container.tileColor("#131620")
+                                        border.color: container.tileColor("#282e3e")
+                                        border.width: 1
                                         Rectangle {
                                             width: container.monitorData.sdcard.mounted ? Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.sdcard.percent || 0) / 100.0))) : 0
                                             height: parent.height
-                                            radius: 4
+                                            radius: 8
                                             color: container.getBarColor(container.monitorData.sdcard.percent || 0)
                                             Behavior on width { NumberAnimation { duration: 250 } }
                                         }
@@ -1331,13 +1339,15 @@ PlasmoidItem {
 
                                 Rectangle {
                                     Layout.fillWidth: true
-                                    height: 10
-                                    radius: 5
-                                    color: container.tileColor("#242936")
+                                    height: 22
+                                    radius: 11
+                                    color: container.tileColor("#131620")
+                                    border.color: container.tileColor("#282e3e")
+                                    border.width: 1
                                     Rectangle {
                                         width: Math.max(0, Math.min(parent.width, parent.width * ((parseFloat(container.monitorData.temp) || 0) / 100.0)))
                                         height: parent.height
-                                        radius: 5
+                                        radius: 11
                                         color: container.getTempColor(container.monitorData.temp)
                                         Behavior on width { NumberAnimation { duration: 250 } }
                                     }
@@ -1411,13 +1421,15 @@ PlasmoidItem {
 
                                 Rectangle {
                                     Layout.fillWidth: true
-                                    height: 10
-                                    radius: 5
-                                    color: container.tileColor("#242936")
+                                    height: 24
+                                    radius: 12
+                                    color: container.tileColor("#131620")
+                                    border.color: container.tileColor("#282e3e")
+                                    border.width: 1
                                     Rectangle {
                                         width: Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.battery.percent || 0) / 100.0)))
                                         height: parent.height
-                                        radius: 5
+                                        radius: 12
                                         color: container.monitorData.battery.is_plugged ? "#00e676" : container.getBarColor(container.monitorData.battery.percent || 0)
                                         Behavior on width { NumberAnimation { duration: 250 } }
                                     }
