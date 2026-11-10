@@ -210,16 +210,16 @@ PlasmoidItem {
         // Background Card with smooth rounded corners
         Rectangle {
             id: mainCard
-            x: root.isFullscreenDashboard ? 12 : ((container.width > root.compactWidth + 32) ? (container.width - root.compactWidth - 16) : 0)
-            y: root.isFullscreenDashboard ? 12 : 16
-            width: root.isFullscreenDashboard ? (container.width - 24) : root.compactWidth
-            height: root.isFullscreenDashboard ? (container.height - 24) : root.compactHeight
-            color: root.effectiveGlassMode ? Qt.rgba(0.09, 0.10, 0.14, root.glassOpacity) : "#161820"
-            radius: 16
-            border.color: root.effectiveGlassMode
+            x: root.isFullscreenDashboard ? 0 : ((container.width > root.compactWidth + 32) ? (container.width - root.compactWidth - 16) : 0)
+            y: root.isFullscreenDashboard ? 0 : 16
+            width: root.isFullscreenDashboard ? container.width : root.compactWidth
+            height: root.isFullscreenDashboard ? container.height : root.compactHeight
+            color: root.effectiveGlassMode ? Qt.rgba(0.09, 0.10, 0.14, root.glassOpacity) : (root.isFullscreenDashboard ? "#11141c" : "#161820")
+            radius: root.isFullscreenDashboard ? 0 : 16
+            border.color: root.isFullscreenDashboard ? "transparent" : (root.effectiveGlassMode
                 ? (container.isConnected ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 0.32, 0.32, 0.5))
-                : (container.isConnected ? "#2c3242" : "#4a2424")
-            border.width: 1
+                : (container.isConnected ? "#2c3242" : "#4a2424"))
+            border.width: root.isFullscreenDashboard ? 0 : 1
             clip: true
 
             // --- COMPACT VIEW (FLOATING CARD) ---
@@ -929,20 +929,20 @@ PlasmoidItem {
                 id: dashboardView
                 visible: root.isFullscreenDashboard
                 anchors.fill: parent
-                anchors.margins: 16
-                spacing: 12
+                anchors.margins: 18
+                spacing: 14
 
                 // --- TOP DASHBOARD HEADER ---
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: 10
+                    spacing: 12
 
                     Image {
                         source: Qt.resolvedUrl("../icons/steamdeck.svg")
-                        Layout.preferredWidth: 26
-                        Layout.preferredHeight: 26
-                        sourceSize.width: 52
-                        sourceSize.height: 52
+                        Layout.preferredWidth: 28
+                        Layout.preferredHeight: 28
+                        sourceSize.width: 56
+                        sourceSize.height: 56
                         fillMode: Image.PreserveAspectFit
                         opacity: container.isConnected ? 1.0 : 0.4
                     }
@@ -950,7 +950,7 @@ PlasmoidItem {
                     Text {
                         text: "STEAM DECK HARDWARE MONITOR"
                         color: "#ffffff"
-                        font.pixelSize: 15
+                        font.pixelSize: 17
                         font.bold: true
                         font.letterSpacing: 1.2
                     }
@@ -958,13 +958,13 @@ PlasmoidItem {
                     Rectangle {
                         color: "#1e293b"
                         radius: 6
-                        Layout.preferredHeight: 22
-                        Layout.preferredWidth: 110
+                        Layout.preferredHeight: 24
+                        Layout.preferredWidth: 120
                         Text {
                             anchors.centerIn: parent
                             text: "DOCK DASHBOARD"
                             color: "#38bdf8"
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             font.bold: true
                         }
                     }
@@ -973,25 +973,26 @@ PlasmoidItem {
 
                     // Wi-Fi Chip
                     Rectangle {
-                        color: container.tileColor("#1e222d")
+                        color: container.tileColor("#1a1e28")
                         radius: 8
-                        Layout.preferredHeight: 28
-                        Layout.preferredWidth: wifiHeadRow.implicitWidth + 14
+                        border.color: container.tileColor("#262b3a"); border.width: 1
+                        Layout.preferredHeight: 32
+                        Layout.preferredWidth: wifiHeadRow.implicitWidth + 18
 
                         RowLayout {
                             id: wifiHeadRow
                             anchors.centerIn: parent
-                            spacing: 6
+                            spacing: 8
 
                             Kirigami.Icon {
                                 source: (container.monitorData.wifi && container.monitorData.wifi.icon) ? container.monitorData.wifi.icon : "network-wireless-symbolic"
-                                Layout.preferredWidth: 14
-                                Layout.preferredHeight: 14
+                                Layout.preferredWidth: 16
+                                Layout.preferredHeight: 16
                             }
                             Text {
                                 text: (container.monitorData.wifi && container.monitorData.wifi.name) ? container.monitorData.wifi.name : "Offline"
-                                color: "#e2e8f0"
-                                font.pixelSize: 11
+                                color: "#f1f5f9"
+                                font.pixelSize: 13
                                 font.bold: true
                             }
                         }
@@ -999,24 +1000,25 @@ PlasmoidItem {
 
                     // Ping Chip
                     Rectangle {
-                        color: container.tileColor("#1e222d")
+                        color: container.tileColor("#1a1e28")
                         radius: 8
-                        Layout.preferredHeight: 28
-                        Layout.preferredWidth: pingHeadRow.implicitWidth + 14
+                        border.color: container.tileColor("#262b3a"); border.width: 1
+                        Layout.preferredHeight: 32
+                        Layout.preferredWidth: pingHeadRow.implicitWidth + 18
 
                         RowLayout {
                             id: pingHeadRow
                             anchors.centerIn: parent
-                            spacing: 5
+                            spacing: 7
 
                             Rectangle {
-                                width: 6; height: 6; radius: 3
+                                width: 8; height: 8; radius: 4
                                 color: container.getPingColor(container.monitorData.ping)
                             }
                             Text {
                                 text: container.monitorData.ping ? container.monitorData.ping : "..."
                                 color: "#cfd8dc"
-                                font.pixelSize: 11
+                                font.pixelSize: 13
                                 font.bold: true
                             }
                         }
@@ -1024,17 +1026,18 @@ PlasmoidItem {
 
                     // Restore to Compact Mode Button
                     Rectangle {
-                        color: container.tileColor("#212532")
+                        color: container.tileColor("#202534")
                         radius: 8
-                        Layout.preferredHeight: 28
-                        Layout.preferredWidth: 28
+                        border.color: container.tileColor("#2c3448"); border.width: 1
+                        Layout.preferredHeight: 32
+                        Layout.preferredWidth: 32
                         Layout.alignment: Qt.AlignVCenter
 
                         Kirigami.Icon {
                             anchors.centerIn: parent
                             source: "view-restore"
-                            Layout.preferredWidth: 14
-                            Layout.preferredHeight: 14
+                            Layout.preferredWidth: 16
+                            Layout.preferredHeight: 16
                         }
 
                         MouseArea {
@@ -1049,56 +1052,56 @@ PlasmoidItem {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
-                    color: container.tileColor("#242834")
+                    color: container.tileColor("#262b38")
                 }
 
                 // --- 3-COLUMN DASHBOARD BODY ---
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    spacing: 14
+                    spacing: 16
 
                     // ==================== COLUMN 1: COMPUTE & STORAGE ====================
                     ColumnLayout {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.preferredWidth: 1
-                        spacing: 10
+                        spacing: 12
 
                         // CPU Card
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            color: container.tileColor("#1b1f2a")
+                            color: container.tileColor("#171a23")
                             radius: 12
-                            border.color: container.tileColor("#282d3c"); border.width: 1
+                            border.color: container.tileColor("#272d3e"); border.width: 1
 
                             ColumnLayout {
                                 anchors.fill: parent
-                                anchors.margins: 12
-                                spacing: 6
+                                anchors.margins: 14
+                                spacing: 8
 
                                 RowLayout {
                                     Layout.fillWidth: true
-                                    Text { text: "CPU (Zen 2 APU)"; color: "#90a4ae"; font.pixelSize: 12; font.bold: true }
+                                    Text { text: "CPU (Zen 2 APU)"; color: "#94a3b8"; font.pixelSize: 14; font.bold: true }
                                     Item { Layout.fillWidth: true }
                                     Text {
                                         text: (container.monitorData.cpu_percent || 0).toFixed(1) + "%"
                                         color: "#ffffff"
-                                        font.pixelSize: 18
+                                        font.pixelSize: 24
                                         font.bold: true
                                     }
                                 }
 
                                 Rectangle {
                                     Layout.fillWidth: true
-                                    height: 8
-                                    radius: 4
+                                    height: 10
+                                    radius: 5
                                     color: container.tileColor("#242936")
                                     Rectangle {
                                         width: Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.cpu_percent || 0) / 100.0)))
                                         height: parent.height
-                                        radius: 4
+                                        radius: 5
                                         color: container.getBarColor(container.monitorData.cpu_percent || 0)
                                         Behavior on width { NumberAnimation { duration: 250 } }
                                     }
@@ -1107,7 +1110,7 @@ PlasmoidItem {
                                 Text {
                                     text: "4 Cores / 8 Threads • Custom AMD Aerith/Sephiroth"
                                     color: "#64748b"
-                                    font.pixelSize: 10
+                                    font.pixelSize: 12
                                 }
                             }
                         }
@@ -1116,45 +1119,45 @@ PlasmoidItem {
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            color: container.tileColor("#1b1f2a")
+                            color: container.tileColor("#171a23")
                             radius: 12
-                            border.color: container.tileColor("#282d3c"); border.width: 1
+                            border.color: container.tileColor("#272d3e"); border.width: 1
 
                             ColumnLayout {
                                 anchors.fill: parent
-                                anchors.margins: 12
-                                spacing: 6
+                                anchors.margins: 14
+                                spacing: 8
 
                                 RowLayout {
                                     Layout.fillWidth: true
-                                    Text { text: "RAM (LPDDR5)"; color: "#90a4ae"; font.pixelSize: 12; font.bold: true }
+                                    Text { text: "RAM (LPDDR5)"; color: "#94a3b8"; font.pixelSize: 14; font.bold: true }
                                     Item { Layout.fillWidth: true }
                                     Text {
                                         text: (container.monitorData.memory.used_gb || 0) + " / " + (container.monitorData.memory.total_gb || 0) + " GB"
                                         color: "#ffffff"
-                                        font.pixelSize: 16
+                                        font.pixelSize: 20
                                         font.bold: true
                                     }
                                 }
 
                                 Rectangle {
                                     Layout.fillWidth: true
-                                    height: 8
-                                    radius: 4
+                                    height: 10
+                                    radius: 5
                                     color: container.tileColor("#242936")
                                     Rectangle {
                                         width: Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.memory.percent || 0) / 100.0)))
                                         height: parent.height
-                                        radius: 4
+                                        radius: 5
                                         color: container.getBarColor(container.monitorData.memory.percent || 0)
                                         Behavior on width { NumberAnimation { duration: 250 } }
                                     }
                                 }
 
                                 Text {
-                                    text: Math.round(container.monitorData.memory.percent || 0) + "% Unified High-Speed LPDDR5 Memory"
+                                    text: Math.round(container.monitorData.memory.percent || 0) + "% Unified High-Speed Memory in Use"
                                     color: "#64748b"
-                                    font.pixelSize: 10
+                                    font.pixelSize: 12
                                 }
                             }
                         }
@@ -1163,41 +1166,41 @@ PlasmoidItem {
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            color: container.tileColor("#1b1f2a")
+                            color: container.tileColor("#171a23")
                             radius: 12
-                            border.color: container.tileColor("#282d3c"); border.width: 1
+                            border.color: container.tileColor("#272d3e"); border.width: 1
 
                             ColumnLayout {
                                 anchors.fill: parent
-                                anchors.margins: 12
-                                spacing: 8
+                                anchors.margins: 14
+                                spacing: 10
 
                                 // Internal NVMe
                                 ColumnLayout {
                                     Layout.fillWidth: true
-                                    spacing: 3
+                                    spacing: 5
 
                                     RowLayout {
                                         Layout.fillWidth: true
-                                        Text { text: "Internal NVMe (/home)"; color: "#90a4ae"; font.pixelSize: 11; font.bold: true }
+                                        Text { text: "Internal NVMe (/home)"; color: "#94a3b8"; font.pixelSize: 13; font.bold: true }
                                         Item { Layout.fillWidth: true }
                                         Text {
                                             text: (container.monitorData.storage.free_gb || 0) + " GB free (" + (container.monitorData.storage.percent || 0).toFixed(0) + "%)"
                                             color: "#38bdf8"
-                                            font.pixelSize: 11
+                                            font.pixelSize: 13
                                             font.bold: true
                                         }
                                     }
 
                                     Rectangle {
                                         Layout.fillWidth: true
-                                        height: 6
-                                        radius: 3
+                                        height: 8
+                                        radius: 4
                                         color: container.tileColor("#242936")
                                         Rectangle {
                                             width: Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.storage.percent || 0) / 100.0)))
                                             height: parent.height
-                                            radius: 3
+                                            radius: 4
                                             color: container.getBarColor(container.monitorData.storage.percent || 0)
                                             Behavior on width { NumberAnimation { duration: 250 } }
                                         }
@@ -1207,29 +1210,29 @@ PlasmoidItem {
                                 // MicroSD
                                 ColumnLayout {
                                     Layout.fillWidth: true
-                                    spacing: 3
+                                    spacing: 5
 
                                     RowLayout {
                                         Layout.fillWidth: true
-                                        Text { text: "MicroSD Card (Games & Saves)"; color: "#90a4ae"; font.pixelSize: 11; font.bold: true }
+                                        Text { text: "MicroSD Card (Games & Saves)"; color: "#94a3b8"; font.pixelSize: 13; font.bold: true }
                                         Item { Layout.fillWidth: true }
                                         Text {
                                             text: container.monitorData.sdcard.mounted ? ((container.monitorData.sdcard.free_gb || 0) + " GB free (" + (container.monitorData.sdcard.percent || 0).toFixed(0) + "%)") : "Not Inserted"
-                                            color: container.monitorData.sdcard.mounted ? "#38bdf8" : "#90a4ae"
-                                            font.pixelSize: 11
+                                            color: container.monitorData.sdcard.mounted ? "#38bdf8" : "#94a3b8"
+                                            font.pixelSize: 13
                                             font.bold: true
                                         }
                                     }
 
                                     Rectangle {
                                         Layout.fillWidth: true
-                                        height: 6
-                                        radius: 3
+                                        height: 8
+                                        radius: 4
                                         color: container.tileColor("#242936")
                                         Rectangle {
                                             width: container.monitorData.sdcard.mounted ? Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.sdcard.percent || 0) / 100.0))) : 0
                                             height: parent.height
-                                            radius: 3
+                                            radius: 4
                                             color: container.getBarColor(container.monitorData.sdcard.percent || 0)
                                             Behavior on width { NumberAnimation { duration: 250 } }
                                         }
@@ -1242,19 +1245,19 @@ PlasmoidItem {
 
                                     ColumnLayout {
                                         Layout.fillWidth: true
-                                        spacing: 2
+                                        spacing: 3
 
                                         RowLayout {
                                             Layout.fillWidth: true
-                                            Text { text: "USB: " + (modelData.name || "Drive"); color: "#90a4ae"; font.pixelSize: 10; font.bold: true; elide: Text.ElideRight; Layout.maximumWidth: 180 }
+                                            Text { text: "USB: " + (modelData.name || "Drive"); color: "#94a3b8"; font.pixelSize: 12; font.bold: true; elide: Text.ElideRight; Layout.maximumWidth: 180 }
                                             Item { Layout.fillWidth: true }
-                                            Text { text: (modelData.percent || 0).toFixed(0) + "%"; color: "#38bdf8"; font.pixelSize: 10; font.bold: true }
+                                            Text { text: (modelData.percent || 0).toFixed(0) + "%"; color: "#38bdf8"; font.pixelSize: 12; font.bold: true }
                                         }
                                         Rectangle {
-                                            Layout.fillWidth: true; height: 5; radius: 2.5; color: container.tileColor("#242936")
+                                            Layout.fillWidth: true; height: 6; radius: 3; color: container.tileColor("#242936")
                                             Rectangle {
                                                 width: Math.max(0, Math.min(parent.width, parent.width * ((modelData.percent || 0) / 100.0)))
-                                                height: parent.height; radius: 2.5
+                                                height: parent.height; radius: 3
                                                 color: container.getBarColor(modelData.percent || 0)
                                             }
                                         }
@@ -1268,36 +1271,36 @@ PlasmoidItem {
                     ColumnLayout {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        Layout.preferredWidth: 1.1
-                        spacing: 10
+                        Layout.preferredWidth: 1.15
+                        spacing: 12
 
                         // Zen 2 APU Thermal Card
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            color: container.tileColor("#1b1f2a")
+                            color: container.tileColor("#171a23")
                             radius: 12
-                            border.color: container.tileColor("#282d3c"); border.width: 1
+                            border.color: container.tileColor("#272d3e"); border.width: 1
 
                             ColumnLayout {
                                 anchors.fill: parent
-                                anchors.margins: 14
-                                spacing: 8
+                                anchors.margins: 16
+                                spacing: 10
 
                                 RowLayout {
                                     Layout.fillWidth: true
-                                    Text { text: "🔥 ZEN 2 APU THERMALS"; color: "#90a4ae"; font.pixelSize: 12; font.bold: true; font.letterSpacing: 1.0 }
+                                    Text { text: "🔥 ZEN 2 APU THERMALS"; color: "#94a3b8"; font.pixelSize: 14; font.bold: true; font.letterSpacing: 1.0 }
                                     Item { Layout.fillWidth: true }
                                     Rectangle {
                                         color: container.tileColor("#242936")
-                                        radius: 6
-                                        Layout.preferredHeight: 20
-                                        Layout.preferredWidth: 90
+                                        radius: 8
+                                        Layout.preferredHeight: 24
+                                        Layout.preferredWidth: 100
                                         Text {
                                             anchors.centerIn: parent
                                             text: parseFloat(container.monitorData.temp) < 70 ? "● SAFE" : (parseFloat(container.monitorData.temp) < 85 ? "● WARM" : "● CRITICAL")
                                             color: container.getTempColor(container.monitorData.temp)
-                                            font.pixelSize: 10
+                                            font.pixelSize: 12
                                             font.bold: true
                                         }
                                     }
@@ -1312,14 +1315,14 @@ PlasmoidItem {
                                     Text {
                                         text: container.monitorData.temp || "N/A"
                                         color: container.getTempColor(container.monitorData.temp)
-                                        font.pixelSize: 48
+                                        font.pixelSize: 58
                                         font.bold: true
                                         Layout.alignment: Qt.AlignHCenter
                                     }
                                     Text {
                                         text: "Zen 2 APU Package Temperature"
                                         color: "#64748b"
-                                        font.pixelSize: 11
+                                        font.pixelSize: 13
                                         Layout.alignment: Qt.AlignHCenter
                                     }
                                 }
@@ -1328,13 +1331,13 @@ PlasmoidItem {
 
                                 Rectangle {
                                     Layout.fillWidth: true
-                                    height: 8
-                                    radius: 4
+                                    height: 10
+                                    radius: 5
                                     color: container.tileColor("#242936")
                                     Rectangle {
                                         width: Math.max(0, Math.min(parent.width, parent.width * ((parseFloat(container.monitorData.temp) || 0) / 100.0)))
                                         height: parent.height
-                                        radius: 4
+                                        radius: 5
                                         color: container.getTempColor(container.monitorData.temp)
                                         Behavior on width { NumberAnimation { duration: 250 } }
                                     }
@@ -1342,11 +1345,11 @@ PlasmoidItem {
 
                                 RowLayout {
                                     Layout.fillWidth: true
-                                    Text { text: "35°C (Idle)"; color: "#64748b"; font.pixelSize: 9 }
+                                    Text { text: "35°C (Idle)"; color: "#64748b"; font.pixelSize: 11 }
                                     Item { Layout.fillWidth: true }
-                                    Text { text: "70°C (Warm)"; color: "#64748b"; font.pixelSize: 9 }
+                                    Text { text: "70°C (Warm)"; color: "#64748b"; font.pixelSize: 11 }
                                     Item { Layout.fillWidth: true }
-                                    Text { text: "85°C (Throttle)"; color: "#64748b"; font.pixelSize: 9 }
+                                    Text { text: "85°C (Throttle)"; color: "#64748b"; font.pixelSize: 11 }
                                 }
                             }
                         }
@@ -1355,29 +1358,29 @@ PlasmoidItem {
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            color: container.tileColor("#1b1f2a")
+                            color: container.tileColor("#171a23")
                             radius: 12
-                            border.color: container.tileColor("#282d3c"); border.width: 1
+                            border.color: container.tileColor("#272d3e"); border.width: 1
 
                             ColumnLayout {
                                 anchors.fill: parent
-                                anchors.margins: 14
-                                spacing: 8
+                                anchors.margins: 16
+                                spacing: 10
 
                                 RowLayout {
                                     Layout.fillWidth: true
-                                    Text { text: "⚡ POWER & BATTERY"; color: "#90a4ae"; font.pixelSize: 12; font.bold: true; font.letterSpacing: 1.0 }
+                                    Text { text: "⚡ POWER & BATTERY"; color: "#94a3b8"; font.pixelSize: 14; font.bold: true; font.letterSpacing: 1.0 }
                                     Item { Layout.fillWidth: true }
                                     Rectangle {
                                         color: container.monitorData.battery.is_plugged ? "#052e16" : container.tileColor("#242936")
-                                        radius: 6
-                                        Layout.preferredHeight: 20
-                                        Layout.preferredWidth: 100
+                                        radius: 8
+                                        Layout.preferredHeight: 24
+                                        Layout.preferredWidth: 120
                                         Text {
                                             anchors.centerIn: parent
-                                            text: container.monitorData.battery.charge_label ? container.monitorData.battery.charge_label.toUpperCase() : "DISCHARGING"
+                                            text: (container.monitorData.battery.is_plugged ? "⚡ " : "") + (container.monitorData.battery.charge_label ? container.monitorData.battery.charge_label.toUpperCase() : "DISCHARGING")
                                             color: container.monitorData.battery.is_plugged ? "#4ade80" : "#94a3b8"
-                                            font.pixelSize: 9
+                                            font.pixelSize: 11
                                             font.bold: true
                                         }
                                     }
@@ -1392,14 +1395,14 @@ PlasmoidItem {
                                     Text {
                                         text: (container.monitorData.battery.is_plugged ? "⚡ " : "") + (container.monitorData.battery.percent || 0) + "%"
                                         color: container.monitorData.battery.is_plugged ? "#4ade80" : "#ffffff"
-                                        font.pixelSize: 44
+                                        font.pixelSize: 52
                                         font.bold: true
                                         Layout.alignment: Qt.AlignHCenter
                                     }
                                     Text {
                                         text: "Battery Health: " + (container.monitorData.battery.health || "N/A") + " • " + (container.monitorData.battery.is_plugged ? "USB-C Hub Power Delivery" : "Discharging on Battery")
                                         color: "#64748b"
-                                        font.pixelSize: 11
+                                        font.pixelSize: 13
                                         Layout.alignment: Qt.AlignHCenter
                                     }
                                 }
@@ -1408,14 +1411,14 @@ PlasmoidItem {
 
                                 Rectangle {
                                     Layout.fillWidth: true
-                                    height: 8
-                                    radius: 4
+                                    height: 10
+                                    radius: 5
                                     color: container.tileColor("#242936")
                                     Rectangle {
                                         width: Math.max(0, Math.min(parent.width, parent.width * ((container.monitorData.battery.percent || 0) / 100.0)))
                                         height: parent.height
-                                        radius: 4
-                                        color: container.getBarColor(container.monitorData.battery.percent || 0)
+                                        radius: 5
+                                        color: container.monitorData.battery.is_plugged ? "#00e676" : container.getBarColor(container.monitorData.battery.percent || 0)
                                         Behavior on width { NumberAnimation { duration: 250 } }
                                     }
                                 }
@@ -1428,60 +1431,60 @@ PlasmoidItem {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.preferredWidth: 1
-                        spacing: 10
+                        spacing: 12
 
                         // Network Connectivity Card
                         Rectangle {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 120
-                            color: container.tileColor("#1b1f2a")
+                            Layout.preferredHeight: 140
+                            color: container.tileColor("#171a23")
                             radius: 12
-                            border.color: container.tileColor("#282d3c"); border.width: 1
+                            border.color: container.tileColor("#272d3e"); border.width: 1
 
                             ColumnLayout {
                                 anchors.fill: parent
-                                anchors.margins: 12
-                                spacing: 8
+                                anchors.margins: 14
+                                spacing: 10
 
-                                Text { text: "🌐 NETWORK & WI-FI"; color: "#90a4ae"; font.pixelSize: 12; font.bold: true; font.letterSpacing: 1.0 }
+                                Text { text: "🌐 NETWORK & WI-FI"; color: "#94a3b8"; font.pixelSize: 14; font.bold: true; font.letterSpacing: 1.0 }
 
                                 RowLayout {
                                     Layout.fillWidth: true
 
                                     ColumnLayout {
-                                        spacing: 2
+                                        spacing: 3
                                         Text {
                                             text: (container.monitorData.wifi && container.monitorData.wifi.name) ? container.monitorData.wifi.name : "Offline"
                                             color: "#ffffff"
-                                            font.pixelSize: 15
+                                            font.pixelSize: 18
                                             font.bold: true
                                             elide: Text.ElideRight
-                                            Layout.maximumWidth: 180
+                                            Layout.maximumWidth: 190
                                         }
                                         Text {
                                             text: (container.monitorData.wifi && container.monitorData.wifi.is_tethering) ? "📱 Mobile Hotspot Tethering" : "Wi-Fi Connection Active"
                                             color: "#38bdf8"
-                                            font.pixelSize: 10
+                                            font.pixelSize: 12
                                         }
                                     }
 
                                     Item { Layout.fillWidth: true }
 
                                     ColumnLayout {
-                                        spacing: 2
+                                        spacing: 3
                                         Layout.alignment: Qt.AlignRight
 
                                         Text {
                                             text: container.monitorData.ping ? container.monitorData.ping : "..."
                                             color: container.getPingColor(container.monitorData.ping)
-                                            font.pixelSize: 16
+                                            font.pixelSize: 20
                                             font.bold: true
                                             Layout.alignment: Qt.AlignRight
                                         }
                                         Text {
                                             text: "Cloudflare 1.1.1.1"
                                             color: "#64748b"
-                                            font.pixelSize: 9
+                                            font.pixelSize: 11
                                             Layout.alignment: Qt.AlignRight
                                         }
                                     }
@@ -1493,16 +1496,16 @@ PlasmoidItem {
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            color: container.tileColor("#1b1f2a")
+                            color: container.tileColor("#171a23")
                             radius: 12
-                            border.color: container.tileColor("#282d3c"); border.width: 1
+                            border.color: container.tileColor("#272d3e"); border.width: 1
 
                             ColumnLayout {
                                 anchors.fill: parent
-                                anchors.margins: 12
-                                spacing: 7
+                                anchors.margins: 14
+                                spacing: 8
 
-                                Text { text: "⚡ BACKGROUND SERVICES"; color: "#90a4ae"; font.pixelSize: 12; font.bold: true; font.letterSpacing: 1.0 }
+                                Text { text: "⚡ BACKGROUND DAEMONS"; color: "#94a3b8"; font.pixelSize: 14; font.bold: true; font.letterSpacing: 1.0 }
 
                                 Repeater {
                                     model: [
@@ -1515,31 +1518,31 @@ PlasmoidItem {
 
                                     Rectangle {
                                         Layout.fillWidth: true
-                                        Layout.preferredHeight: 30
-                                        color: container.tileColor("#222736")
-                                        radius: 6
+                                        Layout.preferredHeight: 38
+                                        color: container.tileColor("#1f2432")
+                                        radius: 8
 
                                         RowLayout {
                                             anchors.fill: parent
-                                            anchors.leftMargin: 8
-                                            anchors.rightMargin: 8
+                                            anchors.leftMargin: 10
+                                            anchors.rightMargin: 10
 
                                             Kirigami.Icon {
                                                 source: modelData.icon
-                                                Layout.preferredWidth: 14
-                                                Layout.preferredHeight: 14
+                                                Layout.preferredWidth: 18
+                                                Layout.preferredHeight: 18
                                             }
                                             Text {
                                                 text: modelData.name
-                                                color: "#e2e8f0"
-                                                font.pixelSize: 11
+                                                color: "#f1f5f9"
+                                                font.pixelSize: 13
                                                 font.bold: true
                                             }
                                             Item { Layout.fillWidth: true }
                                             Text {
                                                 text: modelData.state
                                                 color: modelData.ok ? "#4ade80" : "#64748b"
-                                                font.pixelSize: 10
+                                                font.pixelSize: 12
                                                 font.bold: true
                                             }
                                         }
