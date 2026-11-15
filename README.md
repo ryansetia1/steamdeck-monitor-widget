@@ -38,6 +38,11 @@
   - Official Steam Deck branding with connection status indicator.
   - Borderless APU temperature and battery gauges with subtle vertical separator lines.
   - Full appearance customization via KDE Plasma settings (font size slider with live preview).
+- **Built-in Game Search (steamAF + HowLongToBeat)**:
+  - One row at the bottom of the card with two search bars sharing the width: [steamAF](https://steamaf.vercel.app) on the left (buy verdict, regional price, 2-year low, usual sale, HLTB times in the game detail) and HowLongToBeat on the right (Main / Main+ / 100%, Main Story highlighted in red).
+  - Results open in a floating **island** under the card that is drawn above other widgets; typing keeps working while it is open, and it closes when you click elsewhere.
+  - Settings: steamAF currency (44 Steam regions), optional Main Story hours on every steamAF result, island background (Auto / Same as widget / Custom opacity), or hide the row entirely.
+  - Searches run through the same daemon (`/games/...` endpoints), so there is no extra process per search. Also available as standalone widgets: [steamdeck-steamaf-widget](https://github.com/ryansetia1/steamdeck-steamaf-widget) and [steamdeck-hltb-widget](https://github.com/ryansetia1/steamdeck-hltb-widget).
 
 ---
 
@@ -78,7 +83,7 @@ chmod +x install.sh
 ```
 
 ### What the installer does:
-1. Installs the lightweight background daemon to `~/.local/bin/deck-monitor-daemon.py`.
+1. Installs the lightweight background daemon to `~/.local/bin/deck-monitor-daemon.py`, plus the game search helpers `games_hltb.py` / `games_steamaf.py` next to it.
 2. Sets up and starts the systemd user service (`deck-monitor.service`).
 3. Installs the Plasma 6 plasmoid to `~/.local/share/plasma/plasmoids/org.ryan.deckmonitor`.
 4. Automatically attaches the widget to your desktop.
@@ -98,7 +103,17 @@ systemctl --user restart deck-monitor.service
 
 # View live daemon metrics (JSON)
 curl -s http://127.0.0.1:19842/status | python3 -m json.tool
+
+# Game search endpoints used by the search row
+curl -s "http://127.0.0.1:19842/games/hltb?q=hades"
+curl -s "http://127.0.0.1:19842/games/steamaf/search?q=hades&currency=USD"
+curl -s "http://127.0.0.1:19842/games/steamaf/detail?appId=1145360&currency=USD&title=Hades"
+curl -s -G "http://127.0.0.1:19842/games/steamaf/hours" --data-urlencode 'pairs=[["1145360","Hades"]]'
 ```
+
+> `bin/games_hltb.py` and `bin/games_steamaf.py` are copies of the helpers from the standalone
+> widgets; `plasmoid/contents/ui/GamesSection.qml` reuses their result/detail QML. When fixing a
+> HowLongToBeat or steamAF API change, update both places.
 
 ### Appearance Settings
 Right-click the widget on your desktop $\rightarrow$ select **Configure Deck Monitor...** $\rightarrow$ adjust the **Font Size** slider to scale the widget size to your preference.

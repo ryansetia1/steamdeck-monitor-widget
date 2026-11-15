@@ -23,6 +23,20 @@ KCMUtils.SimpleKCM {
     }
     property alias cfg_deckFullscreen: deckFullscreenCheck.checked
     property alias cfg_deckSolidBg: deckSolidBgCheck.checked
+    property alias cfg_showGames: showGamesCheck.checked
+    property string cfg_gamesCurrency
+    property alias cfg_gamesMainStory: mainStoryCheck.checked
+    property alias cfg_gamesIslandStyle: islandBox.currentIndex
+    property alias cfg_gamesIslandOpacity: islandSlider.value
+
+    // Same regions steamAF supports (lib/price.ts CURRENCY_CATALOG)
+    readonly property var currencies: [
+        "USD", "CAD", "BRL", "MXN", "ARS", "CLP", "COP", "PEN", "UYU", "CRC",
+        "GBP", "EUR", "PLN", "CHF", "NOK", "SEK", "DKK", "CZK", "HUF", "RON",
+        "TRY", "UAH", "ILS", "AED", "SAR", "QAR", "KWD", "ZAR", "KZT", "INR",
+        "PKR", "IDR", "MYR", "PHP", "SGD", "THB", "VND", "TWD", "HKD", "CNY",
+        "JPY", "KRW", "AUD", "NZD"
+    ]
 
     Kirigami.FormLayout {
         RowLayout {
@@ -149,6 +163,64 @@ KCMUtils.SimpleKCM {
 
         QQC2.Label {
             text: i18n("Ensures maximum contrast and crisp readability on the Steam Deck screen while docked on your desk.")
+            color: Kirigami.Theme.disabledTextColor
+            font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+        }
+
+        Item { Kirigami.FormData.isSection: true }
+
+        QQC2.CheckBox {
+            id: showGamesCheck
+            Kirigami.FormData.label: i18n("Game search:")
+            text: i18n("Show steamAF + HowLongToBeat search row")
+        }
+
+        QQC2.ComboBox {
+            enabled: showGamesCheck.checked
+            Kirigami.FormData.label: i18n("steamAF currency:")
+            model: appearancePage.currencies
+            currentIndex: Math.max(0, appearancePage.currencies.indexOf(appearancePage.cfg_gamesCurrency))
+            onActivated: (index) => appearancePage.cfg_gamesCurrency = appearancePage.currencies[index]
+        }
+
+        QQC2.CheckBox {
+            id: mainStoryCheck
+            enabled: showGamesCheck.checked
+            text: i18n("Show Main Story hours on steamAF results")
+        }
+
+        QQC2.ComboBox {
+            id: islandBox
+            enabled: showGamesCheck.checked
+            Kirigami.FormData.label: i18n("Results island:")
+            model: [i18n("Auto (stays readable)"), i18n("Same as widget"), i18n("Custom opacity")]
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Island opacity:")
+            enabled: showGamesCheck.checked && islandBox.currentIndex === 2
+            spacing: Kirigami.Units.largeSpacing
+
+            QQC2.Slider {
+                id: islandSlider
+                Layout.preferredWidth: Kirigami.Units.gridUnit * 12
+                from: 10
+                to: 100
+                stepSize: 5
+                snapMode: QQC2.Slider.SnapAlways
+            }
+
+            QQC2.Label {
+                text: islandSlider.value + " %"
+                font.bold: true
+                Layout.preferredWidth: Kirigami.Units.gridUnit * 3
+            }
+        }
+
+        QQC2.Label {
+            text: i18n("Results open in a floating island under the card, above other widgets. Searches go through the monitor daemon (steamaf.vercel.app and HowLongToBeat).")
             color: Kirigami.Theme.disabledTextColor
             font.pixelSize: Kirigami.Theme.smallFont.pixelSize
             Layout.fillWidth: true

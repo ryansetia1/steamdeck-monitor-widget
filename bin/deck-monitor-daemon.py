@@ -9,6 +9,17 @@ import subprocess
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 import socket
 import struct
+import urllib.error
+import urllib.parse
+
+# Game search (HowLongToBeat + steamAF) for the widget's search row. The helpers live next to
+# this script; the monitor keeps working if they are missing.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    import games_hltb
+    import games_steamaf
+except Exception:
+    games_hltb = games_steamaf = None
 
 CACHE_DATA = {}
 LOCK = threading.Lock()
@@ -620,8 +631,47 @@ def get_status():
             FRESH.wait_for(lambda: time.time() - CACHE_DATA.get('timestamp', 0) <= STALE_AFTER, timeout=3.0)
         return dict(CACHE_DATA, prefs=dict(PREFS))
 
+def games_request(path, qs):
+    """GET /games/...: returns (code, payload). Payload shape matches the standalone widgets."""
+    if games_hltb is None or games_steamaf is None:
+        return 503, {'ok': False, 'error': 'Game search helpers are not installed'}
+    arg = lambda k, d='': (qs.get(k) or [d])[0].strip()
+    cur = arg('currency', 'USD').upper()
+    if cur not in games_steamaf.CURRENCIES:
+        cur = 'USD'
+    try:
+        if path == '/games/hltb':
+            q = arg('q')
+            return 200, {'ok': True, 'results': games_hltb.search(q) if len(q) >= 2 else []}
+        if path == '/games/steamaf/search':
+            q = arg('q')
+            res = games_steamaf.search(cur, q) if len(q) >= 2 else {'results': []}
+            return 200, dict(res, ok=True, currency=cur)
+        if path == '/games/steamaf/detail':
+            return 200, dict(games_steamaf.detail(cur, arg('appId'), arg('title')), ok=True, currency=cur)
+        if path == '/games/steamaf/hours':
+            pairs = [(str(i), str(t)) for i, t in json.loads(arg('pairs', '[]'))][:20]
+            return 200, dict(games_steamaf.main_hours(pairs), ok=True)
+    except urllib.error.HTTPError as e:
+        msg = 'Too many requests, wait a minute' if e.code == 429 else 'Upstream error (HTTP %d)' % e.code
+        return 200, {'ok': False, 'error': msg}
+    except Exception as e:
+        return 200, {'ok': False, 'error': str(e)[:120]}
+    return 404, {'ok': False, 'error': 'unknown endpoint'}
+
 class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        parts = urllib.parse.urlsplit(self.path)
+        if parts.path.startswith('/games/'):
+            code, payload = games_request(parts.path, urllib.parse.parse_qs(parts.query))
+            body = json.dumps(payload).encode('utf-8')
+            self.send_response(code)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(body)))
+            self.send_header('Cache-Control', 'no-store')
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if self.path in ('/status', '/', '/api', '/prefs'):
             if self.path == '/prefs':
                 # cheap endpoint for hidden widgets; does not keep the collector awake

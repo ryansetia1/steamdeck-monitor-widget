@@ -35,4 +35,27 @@
       <default>true</default>
     </entry>
   </group>
+
+  <group name="Games">
+    <entry name="showGames" type="Bool">
+      <label>Show the game search row (steamAF + HowLongToBeat) at the bottom of the card</label>
+      <default>true</default>
+    </entry>
+    <entry name="gamesCurrency" type="String">
+      <label>Steam region / currency for steamAF prices and verdicts</label>
+      <default>USD</default>
+    </entry>
+    <entry name="gamesMainStory" type="Bool">
+      <label>Show HowLongToBeat Main Story hours on each steamAF result</label>
+      <default>false</default>
+    </entry>
+    <entry name="gamesIslandStyle" type="Int">
+      <label>Results island background (0 = auto/readable, 1 = same as widget, 2 = custom opacity)</label>
+      <default>0</default>
+    </entry>
+    <entry name="gamesIslandOpacity" type="Int">
+      <label>Results island opacity (percent), used when gamesIslandStyle = 2</label>
+      <default>94</default>
+    </entry>
+  </group>
 </kcfg>

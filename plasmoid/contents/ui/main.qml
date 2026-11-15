@@ -17,6 +17,14 @@ PlasmoidItem {
     property bool deckFullscreen: (Plasmoid.configuration && Plasmoid.configuration.deckFullscreen !== undefined) ? Plasmoid.configuration.deckFullscreen : true
     property bool deckSolidBg: (Plasmoid.configuration && Plasmoid.configuration.deckSolidBg !== undefined) ? Plasmoid.configuration.deckSolidBg : true
 
+    // Game search row (steamAF + HowLongToBeat) at the bottom of the floating card
+    property bool showGames: (Plasmoid.configuration && Plasmoid.configuration.showGames !== undefined) ? Plasmoid.configuration.showGames : true
+    property string gamesCurrency: (Plasmoid.configuration && Plasmoid.configuration.gamesCurrency) || "USD"
+    property bool gamesMainStory: !!(Plasmoid.configuration && Plasmoid.configuration.gamesMainStory)
+    property int gamesIslandStyle: (Plasmoid.configuration && Plasmoid.configuration.gamesIslandStyle) || 0
+    property real gamesIslandOpacity: ((Plasmoid.configuration && Plasmoid.configuration.gamesIslandOpacity) || 94) / 100
+    readonly property int gamesRowHeight: showGames ? 34 + 1 + 2 * 9 : 0   // search row + divider + layout spacing
+
     property bool isOnDeckScreen: false
     property bool isDualScreenActive: false
     property bool shouldBeVisible: true
@@ -35,7 +43,7 @@ PlasmoidItem {
 
     readonly property int compactWidth: 320 + (baseFontSize - 12) * 15
     property int extDriveCount: 0
-    readonly property int compactHeight: 390 + (baseFontSize - 12) * 16 + extDriveCount * (baseFontSize * 2 + 24)
+    readonly property int compactHeight: 390 + (baseFontSize - 12) * 16 + extDriveCount * (baseFontSize * 2 + 24) + gamesRowHeight
 
     function setDeckFullscreen(val) {
         root.deckFullscreen = val;
@@ -935,6 +943,28 @@ PlasmoidItem {
                             }
                         }
                     }
+                }
+
+                // --- GAME SEARCH (steamAF + HowLongToBeat) ---
+                Rectangle {
+                    visible: root.showGames
+                    Layout.fillWidth: true
+                    height: 1
+                    color: container.tileColor("#242834")
+                }
+
+                GamesSection {
+                    visible: root.showGames
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: implicitHeight
+                    anchorItem: mainCard
+                    glassMode: root.effectiveGlassMode
+                    glassOpacity: root.glassOpacity
+                    currency: root.gamesCurrency
+                    showMainStory: root.gamesMainStory
+                    islandStyle: root.gamesIslandStyle
+                    islandOpacity: root.gamesIslandOpacity
+                    onConfigureRequested: Plasmoid.internalAction("configure").trigger()
                 }
             }
                 }

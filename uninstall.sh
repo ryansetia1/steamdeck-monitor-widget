@@ -13,7 +13,7 @@ systemctl --user daemon-reload
 echo "[✓] Service removed"
 
 # 2. Remove daemon
-rm -f "$HOME/.local/bin/deck-monitor-daemon.py"
+rm -f "$HOME/.local/bin/deck-monitor-daemon.py" "$HOME/.local/bin/games_hltb.py" "$HOME/.local/bin/games_steamaf.py"
 echo "[✓] Daemon script removed"
 
 # 3. Remove plasmoid
