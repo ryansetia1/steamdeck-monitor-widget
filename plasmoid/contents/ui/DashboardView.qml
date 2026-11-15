@@ -12,6 +12,7 @@ Item {
     property bool glass: false
     property var ejectState: ({})     // mount -> "busy" | error message
     property string notice: ""        // e.g. "Samsung T7 is safe to remove"
+    property var serviceKeys: ["syncthing", "dropbox", "gdrive", "tailscale", "tmux"]   // which services to show
     signal restoreRequested()
     signal ejectRequested(string mount)
 
@@ -505,8 +506,9 @@ Item {
                 }
             }
 
-            // Services
+            // Services (hidden when none are selected; rows keep their 5-row height and sit at the top)
             Card {
+                visible: dash.serviceKeys.length > 0
                 Layout.fillWidth: true; Layout.fillHeight: true; Layout.preferredWidth: 1
                 ColumnLayout {
                     anchors.fill: parent
@@ -514,18 +516,24 @@ Item {
                     spacing: 0
                     Caption { text: "Services" }
                     Item { Layout.preferredHeight: 8 }
-                    Repeater {
+                    Item {
+                      id: svcArea
+                      Layout.fillWidth: true
+                      Layout.fillHeight: true
+                      Column {
+                       width: svcArea.width
+                       Repeater {
                         model: [
-                            { name: "Syncthing",    icon: "syncthing.svg",     ok: !!dash.svc.syncthing, on: "Active",  off: "Off" },
-                            { name: "Dropbox",      icon: "dropbox.svg",       ok: !!dash.svc.dropbox,   on: "Synced",  off: "Off" },
-                            { name: "Google Drive", icon: "google-drive.svg",  ok: !!dash.svc.rclone,    on: "Mounted", off: "Off" },
-                            { name: "Tailscale",    icon: "tailscale.svg",     ok: !!dash.svc.tailscale, on: "Online",  off: "Off" },
-                            { name: "tmux",         icon: "tmux.png",          ok: (dash.svc.tmux_sessions || 0) > 0,
+                            { key: "syncthing", name: "Syncthing",    icon: "syncthing.svg",     ok: !!dash.svc.syncthing, on: "Active",  off: "Off" },
+                            { key: "dropbox",   name: "Dropbox",      icon: "dropbox.svg",       ok: !!dash.svc.dropbox,   on: "Synced",  off: "Off" },
+                            { key: "gdrive",    name: "Google Drive", icon: "google-drive.svg",  ok: !!dash.svc.rclone,    on: "Mounted", off: "Off" },
+                            { key: "tailscale", name: "Tailscale",    icon: "tailscale.svg",     ok: !!dash.svc.tailscale, on: "Online",  off: "Off" },
+                            { key: "tmux",      name: "tmux",         icon: "tmux.png",          ok: (dash.svc.tmux_sessions || 0) > 0,
                               on: (dash.svc.tmux_sessions || 0) + " open", off: "None" }
-                        ]
+                        ].filter(x => dash.serviceKeys.indexOf(x.key) !== -1)
                         Item {
-                          Layout.fillWidth: true
-                          Layout.fillHeight: true
+                          width: svcArea.width
+                          height: svcArea.height / 5
                           RowLayout {
                             anchors.fill: parent
                             spacing: 14
@@ -553,6 +561,8 @@ Item {
                             }
                           }
                         }
+                       }
+                      }
                     }
                 }
             }

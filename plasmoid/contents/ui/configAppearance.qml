@@ -24,6 +24,11 @@ KCMUtils.SimpleKCM {
     property alias cfg_deckFullscreen: deckFullscreenCheck.checked
     property alias cfg_deckSolidBg: deckSolidBgCheck.checked
     property alias cfg_showGames: showGamesCheck.checked
+    property alias cfg_showSyncthing: svcSyncthing.checked
+    property alias cfg_showDropbox: svcDropbox.checked
+    property alias cfg_showGDrive: svcGDrive.checked
+    property alias cfg_showTailscale: svcTailscale.checked
+    property alias cfg_showTmux: svcTmux.checked
     property string cfg_gamesCurrency
     property alias cfg_gamesMainStory: mainStoryCheck.checked
     property alias cfg_gamesIslandStyle: islandBox.currentIndex
@@ -163,6 +168,22 @@ KCMUtils.SimpleKCM {
 
         QQC2.Label {
             text: i18n("Ensures maximum contrast and crisp readability on the Steam Deck screen while docked on your desk.")
+            color: Kirigami.Theme.disabledTextColor
+            font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+        }
+
+        Item { Kirigami.FormData.isSection: true }
+
+        QQC2.CheckBox { id: svcSyncthing; Kirigami.FormData.label: i18n("Services:"); text: i18n("Syncthing") }
+        QQC2.CheckBox { id: svcDropbox; text: i18n("Dropbox") }
+        QQC2.CheckBox { id: svcGDrive; text: i18n("Google Drive (rclone)") }
+        QQC2.CheckBox { id: svcTailscale; text: i18n("Tailscale") }
+        QQC2.CheckBox { id: svcTmux; text: i18n("tmux") }
+
+        QQC2.Label {
+            text: i18n("Shown on the floating card (two per row) and the docked dashboard. Uncheck all to hide the Services section.")
             color: Kirigami.Theme.disabledTextColor
             font.pixelSize: Kirigami.Theme.smallFont.pixelSize
             Layout.fillWidth: true

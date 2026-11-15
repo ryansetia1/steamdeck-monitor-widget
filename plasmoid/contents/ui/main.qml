@@ -23,7 +23,28 @@ PlasmoidItem {
     property bool gamesMainStory: !!(Plasmoid.configuration && Plasmoid.configuration.gamesMainStory)
     property int gamesIslandStyle: (Plasmoid.configuration && Plasmoid.configuration.gamesIslandStyle) || 0
     property real gamesIslandOpacity: ((Plasmoid.configuration && Plasmoid.configuration.gamesIslandOpacity) || 94) / 100
-    readonly property int gamesRowHeight: showGames ? 34 + 1 + 2 * 9 : 0   // search row + divider + layout spacing
+    readonly property int gamesRowHeight: showGames ? Math.round(34 * compactWidth / 320) + 1 + 2 * 9 : 0   // search row + divider + layout spacing
+
+    // Services the user chose to show (same order everywhere). Compact card: two per row, an odd
+    // last one takes the full row; none = the whole SERVICES block is hidden.
+    function cfgOn(key) {
+        var v = Plasmoid.configuration ? Plasmoid.configuration[key] : undefined;
+        return v === undefined ? true : !!v;
+    }
+    readonly property var serviceKeys: {
+        var all = [["syncthing", "showSyncthing"], ["dropbox", "showDropbox"], ["gdrive", "showGDrive"],
+                   ["tailscale", "showTailscale"], ["tmux", "showTmux"]];
+        return all.filter(p => root.cfgOn(p[1])).map(p => p[0]);
+    }
+    FontMetrics { id: captionMetrics; font.pixelSize: root.baseFontSize - 2; font.bold: true }
+    // compactHeight's 390 base was tuned for all 5 services (3 rows); adjust for the chosen ones.
+    readonly property int servicesDelta: {
+        var tile = baseFontSize + 14, head = Math.ceil(captionMetrics.height) + 5;
+        var full = head + 3 * tile + 2 * 5;
+        var n = serviceKeys.length, rows = Math.ceil(n / 2);
+        var now = n === 0 ? -(1 + 9) - 9 : head + rows * tile + (rows - 1) * 5;   // none: drop block + divider + 2 gaps
+        return now - full;
+    }
 
     property bool isOnDeckScreen: false
     property bool isDualScreenActive: false
@@ -43,7 +64,7 @@ PlasmoidItem {
 
     readonly property int compactWidth: 320 + (baseFontSize - 12) * 15
     property int extDriveCount: 0
-    readonly property int compactHeight: 390 + (baseFontSize - 12) * 16 + extDriveCount * (baseFontSize * 2 + 24) + gamesRowHeight
+    readonly property int compactHeight: 390 + (baseFontSize - 12) * 16 + extDriveCount * (baseFontSize * 2 + 24) + gamesRowHeight + servicesDelta
 
     function setDeckFullscreen(val) {
         root.deckFullscreen = val;
@@ -865,6 +886,7 @@ PlasmoidItem {
 
                 // Divider
                 Rectangle {
+                    visible: root.serviceKeys.length > 0
                     Layout.fillWidth: true
                     height: 1
                     color: container.tileColor("#242834")
@@ -872,6 +894,7 @@ PlasmoidItem {
 
                 // --- SERVICES GRID ---
                 ColumnLayout {
+                    visible: root.serviceKeys.length > 0
                     Layout.fillWidth: true
                     spacing: 5
 
@@ -890,22 +913,24 @@ PlasmoidItem {
                         rowSpacing: 5
 
                         Repeater {
+                            id: serviceTiles
                             model: {
                                 var s = container.monitorData.services || {};
                                 var t = s.tmux_sessions || 0;
                                 return [
-                                    { name: "Syncthing",    icon: "syncthing.svg",    ok: !!s.syncthing, on: "ACTIVE",  off: "OFF" },
-                                    { name: "Dropbox",      icon: "dropbox.svg",      ok: !!s.dropbox,   on: "SYNCED",  off: "OFF" },
-                                    { name: "GDrive",       icon: "google-drive.svg", ok: !!s.rclone,    on: "MOUNTED", off: "OFF" },
-                                    { name: "Tailscale",    icon: "tailscale.svg",    ok: !!s.tailscale, on: "ONLINE",  off: "OFF" },
-                                    { name: "tmux",         icon: "tmux.png",         ok: t > 0,
+                                    { key: "syncthing", name: "Syncthing", icon: "syncthing.svg",    ok: !!s.syncthing, on: "ACTIVE",  off: "OFF" },
+                                    { key: "dropbox",   name: "Dropbox",   icon: "dropbox.svg",      ok: !!s.dropbox,   on: "SYNCED",  off: "OFF" },
+                                    { key: "gdrive",    name: "GDrive",    icon: "google-drive.svg", ok: !!s.rclone,    on: "MOUNTED", off: "OFF" },
+                                    { key: "tailscale", name: "Tailscale", icon: "tailscale.svg",    ok: !!s.tailscale, on: "ONLINE",  off: "OFF" },
+                                    { key: "tmux",      name: "tmux",      icon: "tmux.png",         ok: t > 0,
                                       on: t + (t === 1 ? " SESSION" : " SESSIONS"), off: "NO SESSION" }
-                                ];
+                                ].filter(x => root.serviceKeys.indexOf(x.key) !== -1);
                             }
 
                             Rectangle {
                                 Layout.fillWidth: true
-                                Layout.columnSpan: index === 4 ? 2 : 1   // tmux spans the full row
+                                // an odd last tile takes the full row
+                                Layout.columnSpan: (index === serviceTiles.count - 1 && serviceTiles.count % 2 === 1) ? 2 : 1
                                 Layout.preferredWidth: 1
                                 implicitHeight: root.baseFontSize + 14
                                 radius: 8
@@ -958,6 +983,7 @@ PlasmoidItem {
                     Layout.fillWidth: true
                     Layout.preferredHeight: implicitHeight
                     anchorItem: mainCard
+                    fs: root.compactWidth / 320
                     glassMode: root.effectiveGlassMode
                     glassOpacity: root.glassOpacity
                     currency: root.gamesCurrency
@@ -981,6 +1007,7 @@ PlasmoidItem {
                         glass: root.effectiveGlassMode
                         ejectState: container.ejectState
                         notice: container.ejectNotice
+                        serviceKeys: root.serviceKeys
                         onRestoreRequested: root.setDeckFullscreen(false)
                         onEjectRequested: (mount) => container.ejectDrive(mount)
                     }

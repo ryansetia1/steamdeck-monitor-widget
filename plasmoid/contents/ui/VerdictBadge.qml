@@ -5,6 +5,7 @@ Rectangle {
     id: badge
     property string verdict: ""
     property bool small: false
+    property real fs: 1               // size scale (1 = default)
 
     readonly property color tone: {
         switch (badge.verdict) {
@@ -28,8 +29,8 @@ Rectangle {
     }
 
     visible: label.length > 0
-    implicitWidth: inner.implicitWidth + (small ? 12 : 16)
-    implicitHeight: small ? 16 : 20
+    implicitWidth: inner.implicitWidth + Math.round((small ? 12 : 16) * fs)
+    implicitHeight: Math.round((small ? 16 : 20) * fs)
     width: implicitWidth
     height: implicitHeight
     radius: height / 2
@@ -40,10 +41,10 @@ Rectangle {
     Row {
         id: inner
         anchors.centerIn: parent
-        spacing: 4
+        spacing: Math.round(4 * badge.fs)
         Rectangle {
             anchors.verticalCenter: parent.verticalCenter
-            width: badge.small ? 5 : 6
+            width: Math.round((badge.small ? 5 : 6) * badge.fs)
             height: width
             radius: width / 2
             color: badge.tone
@@ -53,7 +54,7 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             text: badge.label
             color: badge.tone
-            font.pixelSize: badge.small ? 9 : 10
+            font.pixelSize: Math.round((badge.small ? 9 : 10) * badge.fs)
             font.bold: true
         }
     }

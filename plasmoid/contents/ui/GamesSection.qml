@@ -20,14 +20,18 @@ Item {
     property real islandOpacity: 0.94
     signal configureRequested()
 
-    implicitHeight: 34
+    // Size scale (Deck Monitor's font size setting). Every pixel size below goes through px().
+    property real fs: 1
+    function px(n) { return Math.round(n * fs); }
+
+    implicitHeight: gs.px(34)
 
     readonly property string api: "http://127.0.0.1:19842/games/"
-    readonly property int pad: 8
-    readonly property int gap: 6
-    readonly property int rowH: 58          // steamAF result row
-    readonly property int hlRowH: 78        // HowLongToBeat result row
-    readonly property int rowGap: 6
+    readonly property int pad: px(8)
+    readonly property int gap: px(6)
+    readonly property int rowH: px(58)          // steamAF result row
+    readonly property int hlRowH: px(78)        // HowLongToBeat result row
+    readonly property int rowGap: px(6)
     readonly property int maxRows: 10
 
     // ── Look ────────────────────────────────────────────────────────────────
@@ -237,8 +241,8 @@ Item {
             Kirigami.Icon {
                 id: icon
                 source: field.busy ? "view-refresh" : "search"
-                Layout.preferredWidth: 14
-                Layout.preferredHeight: 14
+                Layout.preferredWidth: gs.px(14)
+                Layout.preferredHeight: gs.px(14)
                 opacity: 0.7
                 RotationAnimation on rotation {
                     running: field.busy
@@ -253,7 +257,7 @@ Item {
                 Layout.fillWidth: true
                 color: "#ffffff"
                 selectionColor: "#53B7FF"
-                font.pixelSize: 12
+                font.pixelSize: gs.px(12)
                 clip: true
                 verticalAlignment: TextInput.AlignVCenter
                 onTextChanged: field.edited()
@@ -269,7 +273,7 @@ Item {
                     textFormat: Text.StyledText
                     text: field.placeholder
                     color: "#6b7385"
-                    font.pixelSize: 12
+                    font.pixelSize: gs.px(12)
                     elide: Text.ElideRight
                 }
             }
@@ -277,8 +281,8 @@ Item {
             // Clear button: an × inside a filled circle
             Rectangle {
                 visible: input.text.length > 0
-                Layout.preferredWidth: 15
-                Layout.preferredHeight: 15
+                Layout.preferredWidth: gs.px(15)
+                Layout.preferredHeight: gs.px(15)
                 radius: width / 2
                 color: clearArea.containsMouse ? "#cfd8dc" : "#6b7385"
                 Behavior on color { ColorAnimation { duration: 100 } }
@@ -287,7 +291,7 @@ Item {
                     Rectangle {
                         required property int modelData
                         anchors.centerIn: parent
-                        width: 7; height: 1.5; radius: 0.75
+                        width: gs.px(7); height: gs.px(1.5); radius: 0.75
                         rotation: modelData
                         color: "#161820"
                         antialiasing: true
@@ -412,18 +416,18 @@ Item {
                     // Source + currency chip (opens the widget settings)
                     RowLayout {
                         width: parent.width
-                        height: 20
+                        height: gs.px(20)
                         visible: !gs.detail
                         Text {
                             Layout.leftMargin: 2
                             textFormat: Text.StyledText
                             text: "<b>steam<font color='#53B7FF'>AF</font></b> <font color='#6b7385'>· buy verdicts</font>"
                             color: "#cfd8dc"
-                            font.pixelSize: 11
+                            font.pixelSize: gs.px(11)
                         }
                         Item { Layout.fillWidth: true }
                         Rectangle {
-                            Layout.preferredHeight: 20
+                            Layout.preferredHeight: gs.px(20)
                             Layout.preferredWidth: curText.implicitWidth + 14
                             radius: 6
                             color: curArea.containsMouse ? gs.tileColor("#2f3647") : "transparent"
@@ -434,7 +438,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: gs.currency
                                 color: "#90a4ae"
-                                font.pixelSize: 10
+                                font.pixelSize: gs.px(10)
                                 font.bold: true
                             }
                             MouseArea {
@@ -454,12 +458,12 @@ Item {
                             && (gs.afLoading || gs.afError.length > 0 || gs.afLastQuery.length >= 2)
                         visible: shown
                         width: parent.width
-                        height: 28
+                        height: gs.px(28)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
                         color: gs.afError ? "#ff6b6b" : "#6b7385"
-                        font.pixelSize: 12
+                        font.pixelSize: gs.px(12)
                         text: gs.afLoading ? "Searching…" : (gs.afError || "No games found")
                     }
 
@@ -499,8 +503,8 @@ Item {
                                 spacing: 10
 
                                 Kirigami.ShadowedImage {
-                                    Layout.preferredWidth: 100
-                                    Layout.preferredHeight: 38
+                                    Layout.preferredWidth: gs.px(100)
+                                    Layout.preferredHeight: gs.px(38)
                                     radius: 5
                                     color: gs.tileColor("#2a2f3d")
                                     source: row.modelData.thumb
@@ -516,7 +520,7 @@ Item {
                                         Layout.fillWidth: true
                                         text: row.modelData.name
                                         color: "#ffffff"
-                                        font.pixelSize: 12
+                                        font.pixelSize: gs.px(12)
                                         font.bold: true
                                         elide: Text.ElideRight
                                     }
@@ -527,12 +531,12 @@ Item {
                                         Text {
                                             text: row.modelData.price || "—"
                                             color: row.modelData.state ? gs.verdictColor(row.modelData.state) : "#cfd8dc"
-                                            font.pixelSize: 11
+                                            font.pixelSize: gs.px(11)
                                             font.bold: true
                                         }
                                         Rectangle {
                                             visible: row.modelData.discount > 0
-                                            Layout.preferredHeight: 15
+                                            Layout.preferredHeight: gs.px(15)
                                             Layout.preferredWidth: discText.implicitWidth + 8
                                             radius: 4
                                             color: Qt.rgba(0.20, 0.83, 0.60, 0.2)
@@ -541,7 +545,7 @@ Item {
                                                 anchors.centerIn: parent
                                                 text: "-" + row.modelData.discount + "%"
                                                 color: "#8bd0b7"
-                                                font.pixelSize: 9
+                                                font.pixelSize: gs.px(9)
                                                 font.bold: true
                                             }
                                         }
@@ -552,19 +556,19 @@ Item {
                                             spacing: 4
                                             Rectangle {
                                                 anchors.verticalCenter: parent.verticalCenter
-                                                width: 3; height: 10; radius: 1.5
+                                                width: gs.px(3); height: gs.px(10); radius: 1.5
                                                 color: "#f87171"
                                             }
                                             Text {
                                                 anchors.verticalCenter: parent.verticalCenter
                                                 text: gs.fmtHours(parent.hours)
                                                 color: "#cfd8dc"
-                                                font.pixelSize: 10
+                                                font.pixelSize: gs.px(10)
                                                 font.bold: true
                                             }
                                         }
                                         Item { Layout.fillWidth: true }
-                                        VerdictBadge { verdict: row.modelData.state; small: true }
+                                        VerdictBadge { verdict: row.modelData.state; small: true; fs: gs.fs }
                                     }
                                 }
                             }
@@ -584,8 +588,8 @@ Item {
                             spacing: 8
 
                             Rectangle {
-                                Layout.preferredWidth: 26
-                                Layout.preferredHeight: 26
+                                Layout.preferredWidth: gs.px(26)
+                                Layout.preferredHeight: gs.px(26)
                                 radius: 13
                                 color: backArea.containsMouse ? gs.tileColor("#2f3647") : gs.tileColor("#212532")
                                 Text {
@@ -593,7 +597,7 @@ Item {
                                     anchors.horizontalCenterOffset: -1
                                     text: "‹"
                                     color: "#cfd8dc"
-                                    font.pixelSize: 18
+                                    font.pixelSize: gs.px(18)
                                     font.bold: true
                                 }
                                 MouseArea {
@@ -608,11 +612,12 @@ Item {
                                 Layout.fillWidth: true
                                 text: gs.detail ? gs.detail.name : ""
                                 color: "#ffffff"
-                                font.pixelSize: 13
+                                font.pixelSize: gs.px(13)
                                 font.bold: true
                                 elide: Text.ElideRight
                             }
                             VerdictBadge {
+                                fs: gs.fs
                                 verdict: gs.detail && !gs.detailLoading ? (gs.detail.state || "") : ""
                             }
                         }
@@ -632,11 +637,11 @@ Item {
                         Text {
                             visible: gs.detailLoading || gs.detailError.length > 0
                             width: parent.width
-                            height: 40
+                            height: gs.px(40)
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             color: gs.detailError ? "#ff6b6b" : "#6b7385"
-                            font.pixelSize: 12
+                            font.pixelSize: gs.px(12)
                             text: gs.detailError || "Checking prices…"
                         }
 
@@ -663,12 +668,12 @@ Item {
                                     Text {
                                         text: priceTile.ready ? (gs.detail.current || gs.verdictLabel(gs.detail.state) || "—") : ""
                                         color: priceTile.tone
-                                        font.pixelSize: 20
+                                        font.pixelSize: gs.px(20)
                                         font.bold: true
                                     }
                                     Rectangle {
                                         visible: priceTile.ready && gs.detail.discount > 0
-                                        Layout.preferredHeight: 18
+                                        Layout.preferredHeight: gs.px(18)
                                         Layout.preferredWidth: dText.implicitWidth + 10
                                         radius: 5
                                         color: Qt.rgba(0.20, 0.83, 0.60, 0.2)
@@ -677,7 +682,7 @@ Item {
                                             anchors.centerIn: parent
                                             text: priceTile.ready ? "-" + gs.detail.discount + "%" : ""
                                             color: "#8bd0b7"
-                                            font.pixelSize: 11
+                                            font.pixelSize: gs.px(11)
                                             font.bold: true
                                         }
                                     }
@@ -685,7 +690,7 @@ Item {
                                         visible: priceTile.ready && gs.detail.discount > 0 && !!gs.detail.original
                                         text: priceTile.ready ? (gs.detail.original || "") : ""
                                         color: "#6b7385"
-                                        font.pixelSize: 11
+                                        font.pixelSize: gs.px(11)
                                         font.strikeout: true
                                     }
                                     Item { Layout.fillWidth: true }
@@ -696,14 +701,14 @@ Item {
                                     wrapMode: Text.WordWrap
                                     text: priceTile.ready ? gs.verdictText(gs.detail) : ""
                                     color: "#cfd8dc"
-                                    font.pixelSize: 11
+                                    font.pixelSize: gs.px(11)
                                 }
 
                                 Text {
                                     visible: priceTile.ready && !!gs.detail.sale
                                     text: priceTile.ready ? ("⏱ " + (gs.detail.sale || "")) : ""
                                     color: "#fbbf24"
-                                    font.pixelSize: 11
+                                    font.pixelSize: gs.px(11)
                                     font.bold: true
                                 }
 
@@ -720,15 +725,15 @@ Item {
                                         delegate: Rectangle {
                                             required property var modelData
                                             Layout.fillWidth: true
-                                            Layout.preferredHeight: 36
+                                            Layout.preferredHeight: gs.px(36)
                                             radius: 7
                                             color: gs.glassMode ? Qt.rgba(0, 0, 0, 0.22) : "#1a1d27"
                                             Column {
                                                 anchors.left: parent.left
                                                 anchors.leftMargin: 9
                                                 anchors.verticalCenter: parent.verticalCenter
-                                                Text { text: modelData.label; color: "#90a4ae"; font.pixelSize: 9; font.bold: true }
-                                                Text { text: modelData.value || "—"; color: "#ffffff"; font.pixelSize: 12; font.bold: true }
+                                                Text { text: modelData.label; color: "#90a4ae"; font.pixelSize: gs.px(9); font.bold: true }
+                                                Text { text: modelData.value || "—"; color: "#ffffff"; font.pixelSize: gs.px(12); font.bold: true }
                                             }
                                         }
                                     }
@@ -740,7 +745,7 @@ Item {
                         Rectangle {
                             visible: priceTile.ready && !!gs.detail.hltb
                             width: parent.width
-                            height: 62
+                            height: gs.px(62)
                             radius: 10
                             color: gs.tileColor("#212532")
 
@@ -748,7 +753,7 @@ Item {
                                 x: 10; y: 8
                                 width: parent.width - 20
                                 spacing: 5
-                                Text { text: "HOWLONGTOBEAT"; color: "#90a4ae"; font.pixelSize: 9; font.bold: true }
+                                Text { text: "HOWLONGTOBEAT"; color: "#90a4ae"; font.pixelSize: gs.px(9); font.bold: true }
                                 RowLayout {
                                     width: parent.width
                                     spacing: 6
@@ -761,11 +766,11 @@ Item {
                                         delegate: Rectangle {
                                             required property var modelData
                                             Layout.fillWidth: true
-                                            Layout.preferredHeight: 28
+                                            Layout.preferredHeight: gs.px(28)
                                             radius: 6
                                             color: gs.glassMode ? Qt.rgba(0, 0, 0, 0.22) : "#1a1d27"
                                             Rectangle {
-                                                width: 3; height: parent.height - 12; radius: 1.5
+                                                width: gs.px(3); height: parent.height - 12; radius: 1.5
                                                 anchors.left: parent.left
                                                 anchors.leftMargin: 6
                                                 anchors.verticalCenter: parent.verticalCenter
@@ -778,7 +783,7 @@ Item {
                                                 textFormat: Text.StyledText
                                                 text: "<font color='#90a4ae'>" + modelData.label + "</font>  <b>" + gs.fmtHours(modelData.value) + "</b>"
                                                 color: "#ffffff"
-                                                font.pixelSize: 11
+                                                font.pixelSize: gs.px(11)
                                             }
                                         }
                                     }
@@ -799,7 +804,7 @@ Item {
                                 delegate: Rectangle {
                                     required property var modelData
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: 30
+                                    Layout.preferredHeight: gs.px(30)
                                     radius: 8
                                     color: linkArea.containsMouse ? gs.tileColor("#2f3647") : gs.tileColor("#212532")
                                     border.color: gs.tileColor("#2c3242")
@@ -809,15 +814,15 @@ Item {
                                         spacing: 6
                                         Kirigami.Icon {
                                             anchors.verticalCenter: parent.verticalCenter
-                                            width: 16
-                                            height: 16
+                                            width: gs.px(16)
+                                            height: gs.px(16)
                                             source: modelData.icon
                                         }
                                         Text {
                                             anchors.verticalCenter: parent.verticalCenter
                                             text: modelData.label
                                             color: "#cfd8dc"
-                                            font.pixelSize: 11
+                                            font.pixelSize: gs.px(11)
                                             font.bold: true
                                         }
                                     }
@@ -846,12 +851,12 @@ Item {
                     Text {
                         visible: gs.hlStatusShown
                         width: parent.width
-                        height: 28
+                        height: gs.px(28)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
                         color: gs.hlError ? "#ff6b6b" : "#6b7385"
-                        font.pixelSize: 12
+                        font.pixelSize: gs.px(12)
                         text: gs.hlLoading ? "Searching…" : (gs.hlError || "No games found")
                     }
 
@@ -873,7 +878,7 @@ Item {
                             id: row
                             required property var modelData
                             width: ListView.view.width
-                            height: 78
+                            height: gs.px(78)
                             radius: 10
                             color: rowArea.containsMouse ? (gs.glassMode ? Qt.rgba(1, 1, 1, 0.14) : "#283041") : gs.tileColor("#212532")
 
@@ -891,8 +896,8 @@ Item {
                                 spacing: 10
 
                                 Kirigami.ShadowedImage {
-                                    Layout.preferredWidth: 46
-                                    Layout.preferredHeight: 62
+                                    Layout.preferredWidth: gs.px(46)
+                                    Layout.preferredHeight: gs.px(62)
                                     radius: 6
                                     color: gs.tileColor("#2a2f3d")
                                     source: row.modelData.image
@@ -911,7 +916,7 @@ Item {
                                             Layout.fillWidth: true
                                             text: row.modelData.name
                                             color: "#ffffff"
-                                            font.pixelSize: 13
+                                            font.pixelSize: gs.px(13)
                                             font.bold: true
                                             elide: Text.ElideRight
                                         }
@@ -919,7 +924,7 @@ Item {
                                             visible: !!row.modelData.year
                                             text: row.modelData.year
                                             color: "#78909c"
-                                            font.pixelSize: 11
+                                            font.pixelSize: gs.px(11)
                                         }
                                     }
 
@@ -935,11 +940,11 @@ Item {
                                             delegate: Rectangle {
                                                 required property var modelData
                                                 Layout.fillWidth: true
-                                                Layout.preferredHeight: 34
+                                                Layout.preferredHeight: gs.px(34)
                                                 radius: 7
                                                 color: gs.glassMode ? Qt.rgba(0, 0, 0, 0.22) : "#1a1d27"
                                                 Rectangle {
-                                                    width: 3
+                                                    width: gs.px(3)
                                                     height: parent.height - 14
                                                     radius: 1.5
                                                     anchors.left: parent.left
@@ -955,13 +960,13 @@ Item {
                                                     Text {
                                                         text: modelData.label
                                                         color: "#90a4ae"
-                                                        font.pixelSize: 9
+                                                        font.pixelSize: gs.px(9)
                                                         font.bold: true
                                                     }
                                                     Text {
                                                         text: gs.fmtHours(modelData.value)
                                                         color: modelData.value > 0 ? "#ffffff" : "#5c6475"
-                                                        font.pixelSize: 13
+                                                        font.pixelSize: gs.px(13)
                                                         font.bold: true
                                                     }
                                                 }

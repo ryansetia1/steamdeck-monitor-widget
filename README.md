@@ -37,7 +37,8 @@
 - **Clean Minimalist Design**:
   - Official Steam Deck branding with connection status indicator.
   - Borderless APU temperature and battery gauges with subtle vertical separator lines.
-  - Full appearance customization via KDE Plasma settings (font size slider with live preview).
+  - Full appearance customization via KDE Plasma settings (font size slider with live preview). The slider also scales the game search row and its results island.
+  - Choose which services to show (Syncthing, Dropbox, Google Drive, Tailscale, tmux). The card lays them out two per row (an odd last one takes the full row) and hides the section when none are picked; the docked dashboard follows the same choice.
 - **Built-in Game Search (steamAF + HowLongToBeat)**:
   - One row at the bottom of the card with two search bars sharing the width: [steamAF](https://steamaf.vercel.app) on the left (buy verdict, regional price, 2-year low, usual sale, HLTB times in the game detail) and HowLongToBeat on the right (Main / Main+ / 100%, Main Story highlighted in red).
   - Results open in a floating **island** under the card that is drawn above other widgets; typing keeps working while it is open, and it closes when you click elsewhere.

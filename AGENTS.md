@@ -24,7 +24,10 @@ applied to the other side as well. Commit and push every affected repo so all th
 | `plasmoid/contents/ui/GamesSection.qml` | each widget's `plasmoid/contents/ui/main.qml` (island, result rows, steamAF detail) | adapted, port changes by hand |
 | config group `Games` (`gamesCurrency`, `gamesMainStory`, `gamesIslandStyle`, `gamesIslandOpacity`, `showGames`) | widget configs (`currency`, `showMainStory`, `islandStyle`, `islandOpacity`) | same meaning, different keys |
 
-Check the identical files with `diff -q` before committing. In `GamesSection.qml`, state is
+Check the identical files with `diff -q` before committing. Every pixel size in `GamesSection.qml`
+goes through `gs.px(n)` (scaled by Deck Monitor's font size setting: `fs = compactWidth / 320`), and
+`VerdictBadge.qml` has an `fs` property (default 1). Wrap sizes the same way when porting widget
+changes in, and keep `fs` working when changing `VerdictBadge.qml`. In `GamesSection.qml`, state is
 prefixed (`af*` for steamAF, `hl*` for HLTB) under the root id `gs`. Data comes from the daemon
 over `XMLHttpRequest`; the standalone widgets run their helper through the Plasma5Support
 `executable` engine instead.

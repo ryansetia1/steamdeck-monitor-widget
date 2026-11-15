@@ -36,6 +36,14 @@
     </entry>
   </group>
 
+  <group name="Services">
+    <entry name="showSyncthing" type="Bool"><label>Show Syncthing in the services list</label><default>true</default></entry>
+    <entry name="showDropbox" type="Bool"><label>Show Dropbox in the services list</label><default>true</default></entry>
+    <entry name="showGDrive" type="Bool"><label>Show Google Drive (rclone) in the services list</label><default>true</default></entry>
+    <entry name="showTailscale" type="Bool"><label>Show Tailscale in the services list</label><default>true</default></entry>
+    <entry name="showTmux" type="Bool"><label>Show tmux in the services list</label><default>true</default></entry>
+  </group>
+
   <group name="Games">
     <entry name="showGames" type="Bool">
       <label>Show the game search row (steamAF + HowLongToBeat) at the bottom of the card</label>
