@@ -15,6 +15,7 @@ Item {
     property var serviceKeys: ["syncthing", "dropbox", "gdrive", "tailscale", "tmux"]   // which services to show
     signal restoreRequested()
     signal ejectRequested(string mount)
+    signal serviceClicked(string key, bool ok)
 
     // ---------- palette ----------
     readonly property color cBg: glass ? "transparent" : "#0c0f14"
@@ -534,6 +535,21 @@ Item {
                         Item {
                           width: svcArea.width
                           height: svcArea.height / 5
+                          Rectangle {
+                            anchors.fill: parent
+                            anchors.leftMargin: -10; anchors.rightMargin: -10
+                            anchors.topMargin: 2; anchors.bottomMargin: 2
+                            radius: 10
+                            color: Qt.rgba(1, 1, 1, svcMouse.containsMouse ? 0.06 : 0)
+                            Behavior on color { ColorAnimation { duration: 120 } }
+                          }
+                          MouseArea {
+                            id: svcMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: dash.serviceClicked(modelData.key, modelData.ok)
+                          }
                           RowLayout {
                             anchors.fill: parent
                             spacing: 14

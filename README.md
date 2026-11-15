@@ -58,7 +58,7 @@
 
 ### 🌡️ Thermals & Battery
 - **APU Temperature**: Real-time sensor readout calibrated for Steam Deck Zen 2 APU thermal thresholds (Green `<70°C`, Orange `70-84°C`, Red `≥85°C`).
-- **Battery & Charging**: Accurate percentage, charging state (`CHARGING` / `PLUGGED IN` / `DISCHARGING`), and `⚡` indicator.
+- **Battery & Charging**: Accurate percentage, shown green with a `⚡` indicator while plugged in.
 - **Battery Health**: True health percentage based on battery design capacity (`charge_full` / `charge_full_design`).
 
 ### 🌐 Network & Services
@@ -69,6 +69,15 @@
 - **Rclone (Google Drive)**: Cloud mount daemon state.
 - **Tailscale**: VPN mesh node status (`ONLINE` / `OFF`).
 - **Tmux Sessions**: Real-time counter of active background terminal sessions.
+- **Click a service to open it** (card and docked dashboard), via `plasmoid/contents/code/open-service.sh`:
+
+  | Service | Opens | When off |
+  |---|---|---|
+  | Syncthing | web GUI `http://127.0.0.1:8384` | starts `syncthing.service` (or SyncThingy) first |
+  | Dropbox | `~/Dropbox` in the file manager | starts `dropbox.service` (or `dropbox start`) first |
+  | Google Drive | the rclone mount folder (`findmnt -t fuse.rclone`) | opens home if nothing is mounted |
+  | Tailscale | admin console (machines list) in the browser | same |
+  | tmux | Konsole attached to the latest session | creates session `main` |
 
 ---
 

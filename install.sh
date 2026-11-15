@@ -30,6 +30,8 @@ fi
 if [ -d "$SCRIPT_DIR/plasmoid/contents/config" ]; then
     cp -r "$SCRIPT_DIR/plasmoid/contents/config/"* "$PLASMOID_DIR/contents/config/"
 fi
+mkdir -p "$PLASMOID_DIR/contents/code"
+cp -r "$SCRIPT_DIR/plasmoid/contents/code/"* "$PLASMOID_DIR/contents/code/"
 echo "[✓] Plasmoid installed to $PLASMOID_DIR"
 
 # 4. Optional: add to desktop

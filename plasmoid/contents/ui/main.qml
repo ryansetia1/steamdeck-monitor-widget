@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
+import org.kde.plasma.plasma5support as P5Support
 
 PlasmoidItem {
     id: root
@@ -36,8 +37,18 @@ PlasmoidItem {
                    ["tailscale", "showTailscale"], ["tmux", "showTmux"]];
         return all.filter(p => root.cfgOn(p[1])).map(p => p[0]);
     }
+    // Click on a service tile: open it (or start it when off) via contents/code/open-service.sh
+    P5Support.DataSource {
+        id: launcher
+        engine: "executable"
+        onNewData: (source) => disconnectSource(source)
+    }
+    function openService(key, ok) {
+        var script = Qt.resolvedUrl("../code/open-service.sh").toString().replace(/^file:\/\//, "");
+        launcher.connectSource("setsid -f sh '" + script + "' " + key + " " + (ok ? 1 : 0) + " >/dev/null 2>&1 #" + Date.now());
+    }
     FontMetrics { id: captionMetrics; font.pixelSize: root.baseFontSize - 2; font.bold: true }
-    // compactHeight's 390 base was tuned for all 5 services (3 rows); adjust for the chosen ones.
+    // compactHeight's 374 base was tuned for all 5 services (3 rows); adjust for the chosen ones.
     readonly property int servicesDelta: {
         var tile = baseFontSize + 14, head = Math.ceil(captionMetrics.height) + 5;
         var full = head + 3 * tile + 2 * 5;
@@ -64,7 +75,7 @@ PlasmoidItem {
 
     readonly property int compactWidth: 320 + (baseFontSize - 12) * 15
     property int extDriveCount: 0
-    readonly property int compactHeight: 390 + (baseFontSize - 12) * 16 + extDriveCount * (baseFontSize * 2 + 24) + gamesRowHeight + servicesDelta
+    readonly property int compactHeight: 374 + (baseFontSize - 12) * 16 + extDriveCount * (baseFontSize * 2 + 24) + gamesRowHeight + servicesDelta
 
     function setDeckFullscreen(val) {
         root.deckFullscreen = val;
@@ -774,7 +785,7 @@ PlasmoidItem {
                     // Temp Badge
                     Item {
                         Layout.fillWidth: true
-                        height: root.baseFontSize + 38
+                        height: root.baseFontSize + 22
 
                         ColumnLayout {
                             anchors.centerIn: parent
@@ -793,13 +804,6 @@ PlasmoidItem {
                                 font.bold: true
                                 Layout.alignment: Qt.AlignHCenter
                             }
-                            Text {
-                                text: "APU"
-                                color: "transparent"
-                                font.pixelSize: root.baseFontSize - 3
-                                font.bold: true
-                                Layout.alignment: Qt.AlignHCenter
-                            }
                         }
                     }
 
@@ -814,7 +818,7 @@ PlasmoidItem {
                     // Battery Badge
                     Item {
                         Layout.fillWidth: true
-                        height: root.baseFontSize + 38
+                        height: root.baseFontSize + 22
 
                         ColumnLayout {
                             anchors.centerIn: parent
@@ -833,13 +837,6 @@ PlasmoidItem {
                                 font.bold: true
                                 Layout.alignment: Qt.AlignHCenter
                             }
-                            Text {
-                                text: container.monitorData.battery.charge_label ? container.monitorData.battery.charge_label.toUpperCase() : "DISCHARGING"
-                                color: container.monitorData.battery.is_plugged ? "#00e676" : "#78909c"
-                                font.pixelSize: root.baseFontSize - 3
-                                font.bold: true
-                                Layout.alignment: Qt.AlignHCenter
-                            }
                         }
                     }
 
@@ -854,7 +851,7 @@ PlasmoidItem {
                     // Battery Health Badge
                     Item {
                         Layout.fillWidth: true
-                        height: root.baseFontSize + 38
+                        height: root.baseFontSize + 22
 
                         ColumnLayout {
                             anchors.centerIn: parent
@@ -870,13 +867,6 @@ PlasmoidItem {
                                 text: container.monitorData.battery.health || "N/A"
                                 color: container.getHealthColor(container.monitorData.battery.health)
                                 font.pixelSize: root.baseFontSize + 3
-                                font.bold: true
-                                Layout.alignment: Qt.AlignHCenter
-                            }
-                            Text {
-                                text: "HEALTH"
-                                color: "#546e7a"
-                                font.pixelSize: root.baseFontSize - 3
                                 font.bold: true
                                 Layout.alignment: Qt.AlignHCenter
                             }
@@ -934,7 +924,18 @@ PlasmoidItem {
                                 Layout.preferredWidth: 1
                                 implicitHeight: root.baseFontSize + 14
                                 radius: 8
-                                color: container.tileColor("#1e222d")
+                                color: tileMouse.containsMouse ? (root.effectiveGlassMode ? Qt.rgba(1, 1, 1, 0.18) : "#2c3346") : container.tileColor("#1e222d")
+                                border.width: 1
+                                border.color: tileMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.22) : "transparent"
+                                Behavior on color { ColorAnimation { duration: 120 } }
+
+                                MouseArea {
+                                    id: tileMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.openService(modelData.key, modelData.ok)
+                                }
 
                                 RowLayout {
                                     anchors.fill: parent
@@ -1010,6 +1011,7 @@ PlasmoidItem {
                         serviceKeys: root.serviceKeys
                         onRestoreRequested: root.setDeckFullscreen(false)
                         onEjectRequested: (mount) => container.ejectDrive(mount)
+                        onServiceClicked: (key, ok) => root.openService(key, ok)
                     }
                 }
             }

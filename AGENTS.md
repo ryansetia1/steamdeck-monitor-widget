@@ -50,6 +50,13 @@ over `XMLHttpRequest`; the standalone widgets run their helper through the Plasm
   auto-placement; it flipped the island above the widget. The island is open while the focused
   search field has content and closes when the field loses focus.
 
+## Service tiles
+
+Clicking a service tile (compact card in `main.qml`, rows in `DashboardView.qml` via the
+`serviceClicked(key, ok)` signal) calls `root.openService()`, which runs
+`plasmoid/contents/code/open-service.sh <key> <0|1>` detached (`setsid -f`) through the Plasma5Support
+`executable` engine. Change what a click does in that script.
+
 ## Install / test
 
 - `./install.sh` copies the daemon, helpers and plasmoid. It runs `systemctl --user enable --now`,
