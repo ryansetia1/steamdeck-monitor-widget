@@ -20,6 +20,7 @@ PlasmoidItem {
 
     // Game search row (steamAF + HowLongToBeat) at the bottom of the floating card
     property bool showGames: (Plasmoid.configuration && Plasmoid.configuration.showGames !== undefined) ? Plasmoid.configuration.showGames : true
+    readonly property int dropboxQuotaGB: (Plasmoid.configuration && Plasmoid.configuration.dropboxQuotaGB) || 2
     property string gamesCurrency: (Plasmoid.configuration && Plasmoid.configuration.gamesCurrency) || "USD"
     property bool gamesMainStory: !!(Plasmoid.configuration && Plasmoid.configuration.gamesMainStory)
     property int gamesIslandStyle: (Plasmoid.configuration && Plasmoid.configuration.gamesIslandStyle) || 0
@@ -909,7 +910,8 @@ PlasmoidItem {
                                 var t = s.tmux_sessions || 0;
                                 return [
                                     { key: "syncthing", name: "Syncthing", icon: "syncthing.svg",    ok: !!s.syncthing, on: "ACTIVE",  off: "OFF" },
-                                    { key: "dropbox",   name: "Dropbox",   icon: "dropbox.svg",      ok: !!s.dropbox,   on: "SYNCED",  off: "OFF" },
+                                    { key: "dropbox",   name: "Dropbox",   icon: "dropbox.svg",      ok: !!s.dropbox,   on: "SYNCED",  off: "OFF",
+                                      used: s.dropbox_used === undefined ? -1 : s.dropbox_used },
                                     { key: "gdrive",    name: "GDrive",    icon: "google-drive.svg", ok: !!s.rclone,    on: "MOUNTED", off: "OFF" },
                                     { key: "tailscale", name: "Tailscale", icon: "tailscale.svg",    ok: !!s.tailscale, on: "ONLINE",  off: "OFF" },
                                     { key: "tmux",      name: "tmux",      icon: "tmux.png",         ok: t > 0,
@@ -935,6 +937,20 @@ PlasmoidItem {
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: root.openService(modelData.key, modelData.ok)
+                                }
+
+                                // Dropbox: storage popover above the tile while hovered
+                                DropboxUsage {
+                                    visible: modelData.key === "dropbox" && tileMouse.containsMouse
+                                    z: 100
+                                    fs: root.compactWidth / 320
+                                    glass: root.effectiveGlassMode
+                                    usedBytes: modelData.used !== undefined ? modelData.used : -1
+                                    quotaGB: root.dropboxQuotaGB
+                                    anchors.bottom: parent.top
+                                    anchors.bottomMargin: 6
+                                    anchors.right: index % 2 === 1 ? parent.right : undefined
+                                    anchors.left: index % 2 === 1 ? undefined : parent.left
                                 }
 
                                 RowLayout {
@@ -1012,6 +1028,7 @@ PlasmoidItem {
                         onRestoreRequested: root.setDeckFullscreen(false)
                         onEjectRequested: (mount) => container.ejectDrive(mount)
                         onServiceClicked: (key, ok) => root.openService(key, ok)
+                        dropboxQuotaGB: root.dropboxQuotaGB
                     }
                 }
             }

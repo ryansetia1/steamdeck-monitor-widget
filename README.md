@@ -65,7 +65,7 @@
 - **Wi-Fi / Hotspot**: Active SSID with smart tethering detection.
 - **Ping Latency**: Millisecond ping to global DNS (`1.1.1.1`) with dynamic color status dot (Green `≤80ms`, Orange `81-150ms`, Red `>150ms / Offline`).
 - **Syncthing**: Sync daemon active state.
-- **Dropbox**: File sync status with official icon.
+- **Dropbox**: File sync status with official icon. Hover the tile to see storage used vs. your plan (default 2 GB, set under *Dropbox plan* in the settings). Usage is the local `~/Dropbox` folder size (measured every 5 min), which matches the account when nothing is excluded from selective sync.
 - **Rclone (Google Drive)**: Cloud mount daemon state.
 - **Tailscale**: VPN mesh node status (`ONLINE` / `OFF`).
 - **Tmux Sessions**: Real-time counter of active background terminal sessions.

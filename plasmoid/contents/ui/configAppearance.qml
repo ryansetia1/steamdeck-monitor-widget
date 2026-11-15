@@ -29,6 +29,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_showGDrive: svcGDrive.checked
     property alias cfg_showTailscale: svcTailscale.checked
     property alias cfg_showTmux: svcTmux.checked
+    property alias cfg_dropboxQuotaGB: quotaSpin.value
     property string cfg_gamesCurrency
     property alias cfg_gamesMainStory: mainStoryCheck.checked
     property alias cfg_gamesIslandStyle: islandBox.currentIndex
@@ -181,6 +182,11 @@ KCMUtils.SimpleKCM {
         QQC2.CheckBox { id: svcGDrive; text: i18n("Google Drive (rclone)") }
         QQC2.CheckBox { id: svcTailscale; text: i18n("Tailscale") }
         QQC2.CheckBox { id: svcTmux; text: i18n("tmux") }
+        RowLayout {
+            Kirigami.FormData.label: i18n("Dropbox plan:")
+            QQC2.SpinBox { id: quotaSpin; from: 1; to: 100000; editable: true }
+            QQC2.Label { text: i18n("GB (hover the Dropbox tile to see usage)") }
+        }
 
         QQC2.Label {
             text: i18n("Shown on the floating card (two per row) and the docked dashboard. Uncheck all to hide the Services section.")

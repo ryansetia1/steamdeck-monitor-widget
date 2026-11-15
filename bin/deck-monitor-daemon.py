@@ -428,6 +428,42 @@ class MetricCollector:
             pass
         return 0
 
+    _dropbox_used = (-1, 0.0)    # (bytes, monotonic time measured)
+
+    @staticmethod
+    def _dropbox_dir():
+        try:
+            with open(os.path.expanduser('~/.dropbox/info.json')) as f:
+                info = json.load(f)
+            for acct in info.values():
+                if isinstance(acct, dict) and acct.get('path'):
+                    return acct['path']
+        except Exception:
+            pass
+        return os.path.expanduser('~/Dropbox')
+
+    def _dropbox_usage(self):
+        """Size of the local Dropbox folder in bytes (≈ account usage when nothing is excluded
+        from selective sync). Re-measured at most every 5 minutes."""
+        used, at = self._dropbox_used
+        if used >= 0 and time.monotonic() - at < 300:
+            return used
+        root = os.path.realpath(self._dropbox_dir())
+        if not os.path.isdir(root):
+            return -1
+        total = 0
+        for base, dirs, files in os.walk(root):
+            dirs[:] = [d for d in dirs if d != '.dropbox.cache']
+            for name in files:
+                try:
+                    st = os.lstat(os.path.join(base, name))
+                    if not os.path.islink(os.path.join(base, name)):
+                        total += st.st_size
+                except OSError:
+                    pass
+        self._dropbox_used = (total, time.monotonic())
+        return total
+
     def get_services(self):
         running = self._running((b'syncthing', b'dropbox', b'rclone'))
         syncthing = b'syncthing' in running
@@ -440,6 +476,7 @@ class MetricCollector:
         return {
             'syncthing': syncthing,
             'dropbox': dropbox,
+            'dropbox_used': self._dropbox_usage(),
             'rclone': rclone,
             'tmux_sessions': tmux_count,
             'tailscale': tailscale

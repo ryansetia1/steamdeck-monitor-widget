@@ -16,6 +16,7 @@ Item {
     signal restoreRequested()
     signal ejectRequested(string mount)
     signal serviceClicked(string key, bool ok)
+    property int dropboxQuotaGB: 2
 
     // ---------- palette ----------
     readonly property color cBg: glass ? "transparent" : "#0c0f14"
@@ -549,6 +550,17 @@ Item {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: dash.serviceClicked(modelData.key, modelData.ok)
+                          }
+                          DropboxUsage {
+                            visible: modelData.key === "dropbox" && svcMouse.containsMouse
+                            z: 100
+                            fs: 1.6
+                            glass: dash.glass
+                            usedBytes: dash.svc.dropbox_used === undefined ? -1 : dash.svc.dropbox_used
+                            quotaGB: dash.dropboxQuotaGB
+                            anchors.right: parent.right
+                            anchors.bottom: parent.top
+                            anchors.bottomMargin: 4
                           }
                           RowLayout {
                             anchors.fill: parent

@@ -42,6 +42,7 @@
     <entry name="showGDrive" type="Bool"><label>Show Google Drive (rclone) in the services list</label><default>true</default></entry>
     <entry name="showTailscale" type="Bool"><label>Show Tailscale in the services list</label><default>true</default></entry>
     <entry name="showTmux" type="Bool"><label>Show tmux in the services list</label><default>true</default></entry>
+    <entry name="dropboxQuotaGB" type="Int"><label>Dropbox plan size in GB (for the hover popover)</label><default>2</default></entry>
   </group>
 
   <group name="Games">

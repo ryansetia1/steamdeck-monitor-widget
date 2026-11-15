@@ -57,6 +57,9 @@ Clicking a service tile (compact card in `main.qml`, rows in `DashboardView.qml`
 `plasmoid/contents/code/open-service.sh <key> <0|1>` detached (`setsid -f`) through the Plasma5Support
 `executable` engine. Change what a click does in that script.
 
+Hovering the Dropbox tile/row shows `DropboxUsage.qml`: `services.dropbox_used` (bytes, daemon
+walks the Dropbox folder from `~/.dropbox/info.json`, cached 5 min) against config `dropboxQuotaGB`.
+
 ## Install / test
 
 - `./install.sh` copies the daemon, helpers and plasmoid. It runs `systemctl --user enable --now`,
