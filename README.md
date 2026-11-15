@@ -2,6 +2,10 @@
 
 <p align="center">
   <img src="assets/preview.png" alt="Steam Deck Monitor Widget Preview" width="360" />
+  &nbsp;
+  <img src="assets/preview-games.png" alt="steamAF game detail with the media carousel" width="320" />
+  <br /><br />
+  <img src="assets/preview-theater.png" alt="Full-screen theater playing a trailer" width="720" />
 </p>
 
 <p align="center">
