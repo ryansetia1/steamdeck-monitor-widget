@@ -210,7 +210,19 @@ Item {
     readonly property bool islandOpen: (activeSide === "af" && afHasContent) || (activeSide === "hl" && hlHasContent)
     property string shownSide: "af"       // keeps the last side so the island doesn't collapse mid-close
     onActiveSideChanged: if (activeSide) shownSide = activeSide
-    onIslandOpenChanged: if (islandOpen) island.place()
+    onIslandOpenChanged: { if (islandOpen) island.place(); else theater.close(); }
+    onDetailChanged: if (!detail) theater.close()
+    readonly property rect screenRect: Qt.rect(Screen.virtualX, Screen.virtualY, Screen.width, Screen.height)
+
+    // ── Theater: full-screen cover / trailers / screenshots of the open steamAF game ──
+    MediaTheater {
+        id: theater
+        items: carousel.items
+        title: gs.detail ? (gs.detail.name || "") : ""
+        appId: gs.detail ? String(gs.detail.id) : ""
+        screenRect: gs.screenRect
+        onIndexPicked: (i) => carousel.currentIndex = i
+    }
 
     // ── Search field ────────────────────────────────────────────────────────
     component SearchField: Rectangle {
@@ -223,6 +235,8 @@ Item {
         signal submitted()
         signal escapePressed()
         signal moveList(int dy)
+        property bool arrowsTaken: false  // ←/→ go to arrow() instead of the text cursor
+        signal arrow(int dir)
 
         function clear() { input.text = ""; }
         function unfocus() { input.focus = false; }
@@ -265,6 +279,8 @@ Item {
                 Keys.onEscapePressed: field.escapePressed()
                 Keys.onDownPressed: field.moveList(-800)
                 Keys.onUpPressed: field.moveList(800)
+                Keys.onLeftPressed: (e) => { if (field.arrowsTaken) field.arrow(-1); else e.accepted = false; }
+                Keys.onRightPressed: (e) => { if (field.arrowsTaken) field.arrow(1); else e.accepted = false; }
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
@@ -322,8 +338,11 @@ Item {
             busy: gs.afLoading || gs.detailLoading
             onEdited: afDebounce.restart()
             onSubmitted: { afDebounce.stop(); gs.closeDetail(); gs.afSearch(text); }
+            arrowsTaken: theater.shown
+            onArrow: (d) => theater.step(d)
             onEscapePressed: {
-                if (gs.detail) gs.closeDetail();
+                if (theater.shown) theater.close();
+                else if (gs.detail) gs.closeDetail();
                 else if (text) clear();
                 else unfocus();
             }
@@ -622,15 +641,17 @@ Item {
                             }
                         }
 
-                        Kirigami.ShadowedImage {
+                        // Cover first, then trailers + screenshots; click opens the theater
+                        MediaCarousel {
+                            id: carousel
                             width: parent.width
-                            height: Math.round(width * 215 / 460)
-                            radius: 8
-                            color: gs.tileColor("#212532")
-                            fillMode: Image.PreserveAspectCrop
-                            asynchronous: true
-                            source: gs.detail ? (gs.detail.image
+                            height: implicitHeight
+                            fs: gs.fs
+                            baseColor: gs.tileColor("#212532")
+                            cover: gs.detail ? (gs.detail.image
                                 || "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/" + gs.detail.id + "/header.jpg") : ""
+                            media: gs.detail && gs.detail.media ? gs.detail.media : []
+                            onOpenRequested: (i) => theater.open(i)
                         }
 
                         // Loading / error

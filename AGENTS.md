@@ -21,6 +21,7 @@ applied to the other side as well. Commit and push every affected repo so all th
 | `bin/games_steamaf.py` | steamaf widget `plasmoid/contents/code/steamaf.py` | byte-identical |
 | `plasmoid/contents/ui/VerdictBadge.qml` | steamaf widget `plasmoid/contents/ui/VerdictBadge.qml` | byte-identical |
 | `plasmoid/contents/icons/steamaf.png` | steamaf widget `plasmoid/contents/icons/steamaf.png` | byte-identical |
+| `plasmoid/contents/ui/MediaCarousel.qml`, `MediaTheater.qml` | steamaf widget, same paths | byte-identical |
 | `plasmoid/contents/ui/GamesSection.qml` | each widget's `plasmoid/contents/ui/main.qml` (island, result rows, steamAF detail) | adapted, port changes by hand |
 | config group `Games` (`gamesCurrency`, `gamesMainStory`, `gamesIslandStyle`, `gamesIslandOpacity`, `showGames`) | widget configs (`currency`, `showMainStory`, `islandStyle`, `islandOpacity`) | same meaning, different keys |
 
@@ -59,6 +60,14 @@ Clicking a service tile (compact card in `main.qml`, rows in `DashboardView.qml`
 
 Hovering the Dropbox tile/row shows `DropboxUsage.qml`: `services.dropbox_used` (bytes, daemon
 walks the Dropbox folder from `~/.dropbox/info.json`, cached 5 min) against config `dropboxQuotaGB`.
+
+## Game media (cover, trailers, screenshots)
+
+`steamaf.py detail` also returns `media` (Steam store `appdetails`: trailers as HLS `hls_h264`
+streams, screenshots). `MediaCarousel.qml` shows the cover first with ‹ › chevrons; clicking opens
+`MediaTheater.qml`, a full-screen Tooltip-type `PlasmaCore.Dialog` (QtMultimedia + FFmpeg plays the
+HLS trailer). It never takes focus, so the search field forwards ←/→/Esc to it (`SearchField`
+`arrowsTaken` / `arrow()`). It closes when the island closes or the detail is left.
 
 ## Install / test
 

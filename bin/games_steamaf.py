@@ -181,9 +181,31 @@ def detail(cur, app_id, title):
         except Exception:
             return None
 
-    with ThreadPoolExecutor(3) as ex:
-        fv, fh, fi = ex.submit(verdict), ex.submit(hltb), ex.submit(header)
-        v, hl, img = fv.result(), fh.result(), fi.result()
+    def media():
+        # Trailers (HLS streams) + screenshots from the Steam store; shown after the cover.
+        try:
+            url = ("https://store.steampowered.com/api/appdetails?" +
+                   urllib.parse.urlencode({"appids": app_id, "filters": "movies,screenshots", "l": "english"}))
+            req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = (json.loads(resp.read().decode()).get(str(app_id)) or {}).get("data") or {}
+        except Exception:
+            return []
+        out = []
+        for m in (data.get("movies") or [])[:6]:
+            src = m.get("hls_h264") or (m.get("mp4") or {}).get("max") or (m.get("webm") or {}).get("max")
+            if src:
+                out.append({"type": "video", "name": m.get("name") or "Trailer",
+                            "thumb": m.get("thumbnail") or "", "src": src})
+        for sc in (data.get("screenshots") or [])[:20]:
+            if sc.get("path_full"):
+                out.append({"type": "image", "name": "Screenshot",
+                            "thumb": sc.get("path_thumbnail") or sc["path_full"], "src": sc["path_full"]})
+        return out
+
+    with ThreadPoolExecutor(4) as ex:
+        fv, fh, fi, fm = ex.submit(verdict), ex.submit(hltb), ex.submit(header), ex.submit(media)
+        v, hl, img, med = fv.result(), fh.result(), fi.result(), fm.result()
 
     return {
         "id": app_id,
@@ -196,6 +218,7 @@ def detail(cur, app_id, title):
         "discount": v.get("discountPercent") or 0,
         "sale": sale_text(v.get("sale")),
         "hltb": hl,
+        "media": med,
     }
 
 
