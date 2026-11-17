@@ -647,14 +647,11 @@ Item {
                         width: rs.current && rs.current.main_h ? parent.width * Math.min(1, (rs.current.played_h || 0) / rs.current.main_h) : 0
                     }
                 }
-            }
-
-            ColumnLayout {
-                Layout.alignment: Qt.AlignBottom
-                Layout.bottomMargin: rs.px(10)
-                spacing: rs.px(6)
                 Text {
-                    Layout.alignment: Qt.AlignRight
+                    Layout.fillWidth: true
+                    Layout.topMargin: rs.px(-1)
+                    visible: text.length > 0
+                    elide: Text.ElideRight
                     text: rs.finishPrompt && !rs.cleanser ? "Finished?"
                           : rs.movePrompt ? "Playing?"
                           : rs.running ? rs.running.minutes + " min"
@@ -662,8 +659,13 @@ Item {
                     color: (rs.finishPrompt && !rs.cleanser) || rs.movePrompt ? "#fbbf24" : rs.ink2
                     font.family: "monospace"
                     font.bold: true
-                    font.pixelSize: rs.px(11)
+                    font.pixelSize: rs.px(9)
                 }
+            }
+
+            ColumnLayout {
+                Layout.alignment: Qt.AlignBottom
+                Layout.bottomMargin: rs.px(10)
                 PlayButton {
                     Layout.alignment: Qt.AlignRight
                     itemId: !rs.cleanser && rs.current && !rs.launching ? rs.current.item_id : ""
