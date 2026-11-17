@@ -279,14 +279,14 @@ Item {
             verticalAlignment: Text.AlignBottom
             elide: Text.ElideRight
         }
-        Image {
+        Kirigami.ShadowedImage {
             id: img
             anchors.fill: parent
+            radius: cv.radius
+            color: "transparent"
             source: cv.src
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
-            cache: true
-            smooth: true
         }
         Rectangle {
             anchors.fill: parent
