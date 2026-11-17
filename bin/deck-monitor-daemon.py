@@ -23,8 +23,9 @@ except Exception:
 try:
     import rlog_island   # RLog island (Playing / Up next); optional like the game search
     import rlog_tracker  # what's running on the Deck, sessions, prompts (RLog D2/D3)
+    import rlog_launch   # the island's Play button (ES-DE commands, Steam)
 except Exception:
-    rlog_island = rlog_tracker = None
+    rlog_island = rlog_tracker = rlog_launch = None
 
 CACHE_DATA = {}
 LOCK = threading.Lock()
@@ -711,7 +712,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                 if rlog_island is None:
                     code, payload = 503, {'ok': False, 'error': 'RLog helper is not installed'}
                 elif parts.path == '/rlog':
-                    code, payload = 200, dict(rlog_island.summary(arg('refresh') == '1'), now=rlog_tracker.now_state())
+                    now = dict(rlog_tracker.now_state(), playable=rlog_launch.playable())
+                    code, payload = 200, dict(rlog_island.summary(arg('refresh') == '1'), now=now)
                 elif parts.path == '/rlog/detail':
                     code, payload = 200, rlog_island.detail(arg('item'))
                 elif parts.path == '/rlog/media':
@@ -747,14 +749,17 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def do_POST(self):
-        if self.path not in ('/eject', '/prefs', '/rlog/prompt'):
+        if self.path not in ('/eject', '/prefs', '/rlog/prompt', '/rlog/play'):
             self.send_response(404)
             self.end_headers()
             return
         try:
             length = int(self.headers.get('Content-Length', 0))
             req = json.loads(self.rfile.read(length) or b'{}')
-            if self.path == '/rlog/prompt':
+            if self.path == '/rlog/play':
+                payload = rlog_launch.play(str(req.get('item_id', ''))) if rlog_launch else {'ok': False, 'error': 'not installed'}
+                code = 200
+            elif self.path == '/rlog/prompt':
                 ok = rlog_tracker is not None and rlog_tracker.answer(
                     str(req.get('item_id', '')), req.get('kind'), req.get('action'), int(req.get('days') or 0))
                 code, payload = (200 if ok else 400), {'ok': ok, 'now': rlog_tracker.now_state() if ok else None}
@@ -791,6 +796,7 @@ def main():
     threading.Thread(target=ping_loop, daemon=True).start()
     if rlog_tracker is not None:
         threading.Thread(target=rlog_tracker.loop, daemon=True).start()
+        threading.Thread(target=rlog_launch.loop, daemon=True).start()
     
     server_address = ('127.0.0.1', 19842)
     httpd = ReusableHTTPServer(server_address, RequestHandler)

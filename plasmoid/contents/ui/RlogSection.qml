@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import org.kde.plasma.core as PlasmaCore
+import org.kde.kirigami as Kirigami
 
 // RLog row for the Deck Monitor card (RLog's docs/PLAN.md, "Deck Monitor integration", D1).
 // The row names the Playing game on top; tapping it opens an island under the card with that
@@ -23,7 +24,7 @@ Item {
     property real fs: 1
     function px(n) { return Math.round(n * fs); }
 
-    implicitHeight: px(34)
+    implicitHeight: px(98)
 
     readonly property string api: "http://127.0.0.1:19842/rlog"
     readonly property string appUrl: "https://r-log.vercel.app"
@@ -407,67 +408,224 @@ Item {
         font.letterSpacing: 0.8
     }
 
-    // ── The row in the card ─────────────────────────────────────────────────
-    Rectangle {
+    // ── The row in the card: a banner (screenshot behind, cover, title, year, ▶ Play) ──
+    // The game it shows: the running palate cleanser, else the top card's game.
+    readonly property var subject: cleanser ? running : current
+    readonly property string bannerShot: current && !cleanser ? (shots[current.item_id] || "") : ""
+    property var shots: ({})              // item id -> screenshot url ("" = none)
+    property var playable: now ? (now.playable || []) : []
+    function canPlay(itemId) { return !!itemId && !running && playable.indexOf(itemId) >= 0; }
+    property string launching: ""         // item id being started (shows "Starting…")
+    onCurrentChanged: ensureShot(current)
+    function ensureShot(g) {
+        if (!g || shots[g.item_id] !== undefined || !(g.igdb_id || g.steam_appid)) return;
+        var id = g.item_id;
+        var m = Object.assign({}, shots); m[id] = ""; shots = m;
+        get("http://127.0.0.1:19842/rlog/media?igdb=" + (g.igdb_id || "") + "&steam=" + (g.steam_appid || ""), r => {
+            var pick = (r.media || []).filter(x => x.type === "image")[0];
+            if (!pick) return;
+            var n = Object.assign({}, rs.shots); n[id] = pick.thumb || pick.src; rs.shots = n;
+        });
+    }
+    function playGame(itemId) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "http://127.0.0.1:19842/rlog/play");
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE || !rs) return;
+            var r; try { r = JSON.parse(xhr.responseText); } catch (e) { r = { ok: false, error: "Monitor daemon is not reachable" }; }
+            if (!r.ok) { rs.launchError = r.error || "Couldn't start the game"; rs.launching = ""; }
+        };
+        launching = itemId; launchError = "";
+        launchTimer.restart();
+        open_ = false;
+        xhr.send(JSON.stringify({ item_id: itemId }));
+    }
+    property string launchError: ""
+    Timer { id: launchTimer; interval: 15000; onTriggered: { rs.launching = ""; rs.launchError = ""; } }
+    function metaLine() {
+        if (cleanser) return "Palate cleanser" + (running.platform ? " · " + running.platform : "");
+        if (!current) return summary ? "Start a game in RLog" : (error || "Loading…");
+        var parts = [];
+        if (runningPlaying) parts.push("Playing now");
+        if (current.platform) parts.push(current.platform);
+        if (current.franchise) parts.push(current.franchise.name + " " + current.franchise.done + "/" + current.franchise.total);
+        return parts.join(" · ");
+    }
+
+    // Play: a green round button
+    component PlayButton: Rectangle {
+        id: pb
+        property string itemId: ""
+        property real size: rs.px(34)
+        visible: rs.canPlay(itemId)
+        width: size; height: size; radius: size / 2
+        color: pbArea.containsMouse ? "#4ade80" : rs.green
+        Kirigami.Icon {
+            anchors.centerIn: parent
+            anchors.horizontalCenterOffset: 1
+            width: pb.size * 0.46; height: width
+            source: "media-playback-start"
+            isMask: true
+            color: "#06210f"
+        }
+        MouseArea { id: pbArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: rs.playGame(pb.itemId) }
+    }
+
+    Item {
+        id: bannerRow
         anchors.fill: parent
-        radius: 10
-        color: rowArea.containsMouse ? rs.tileColor("#283041") : rs.tileColor("#212532")
-        border.width: 1
-        border.color: rs.open_ ? rs.green : rs.tileColor("#2c3242")
+
+        Kirigami.ShadowedImage {
+            anchors.fill: parent
+            radius: rs.px(10)
+            color: "#11131a"
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            // A screenshot when there is one; otherwise the cover, dimmed.
+            source: rs.bannerShot || (rs.current && !rs.cleanser ? (rs.current.cover || "") : "")
+            opacity: rs.bannerShot ? 0.9 : 0.35
+        }
+        Rectangle {
+            anchors.fill: parent
+            radius: rs.px(10)
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: Qt.rgba(0.055, 0.063, 0.086, 0.96) }
+                GradientStop { position: 0.42; color: Qt.rgba(0.055, 0.063, 0.086, 0.82) }
+                GradientStop { position: 1.0; color: Qt.rgba(0.055, 0.063, 0.086, 0.25) }
+            }
+            border.width: 1
+            border.color: rs.open_ ? rs.green : Qt.rgba(1, 1, 1, 0.06)
+        }
+
+        Rectangle {
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.margins: rs.px(8)
+            width: markText.implicitWidth + rs.px(10)
+            height: rs.px(17)
+            radius: 5
+            color: Qt.rgba(0, 0, 0, 0.45)
+            Text {
+                id: markText
+                anchors.centerIn: parent
+                textFormat: Text.StyledText
+                text: "<b>R<font color='#34d399'>log</font></b>"
+                color: "#ffffff"
+                font.pixelSize: rs.px(10)
+            }
+        }
 
         RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: rs.px(8)
+            anchors.leftMargin: rs.px(10)
             anchors.rightMargin: rs.px(10)
-            spacing: rs.px(8)
+            spacing: rs.px(11)
 
-            Rectangle {
-                Layout.preferredWidth: markText.implicitWidth + rs.px(10)
-                Layout.preferredHeight: rs.px(18)
-                radius: 5
-                color: Qt.rgba(0.20, 0.83, 0.60, 0.16)
-                Text {
-                    id: markText
-                    anchors.centerIn: parent
-                    textFormat: Text.StyledText
-                    text: "<b>R<font color='#34d399'>log</font></b>"
-                    color: "#ffffff"
-                    font.pixelSize: rs.px(11)
+            Cover {
+                Layout.preferredWidth: rs.px(52)
+                Layout.preferredHeight: rs.px(70)
+                radius: rs.px(6)
+                src: rs.cleanser ? "" : (rs.current ? (rs.current.cover || "") : "")
+                label: rs.subject ? rs.subject.title : ""
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+                spacing: rs.px(4)
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: rs.px(6)
+                    Rectangle {
+                        visible: !!rs.running
+                        width: rs.px(7); height: width; radius: width / 2
+                        color: rs.cleanser ? rs.mute : rs.green
+                        border.width: rs.px(3)
+                        border.color: rs.cleanser ? Qt.rgba(0.42, 0.45, 0.52, 0.35) : Qt.rgba(0.20, 0.83, 0.60, 0.3)
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: rs.subject ? rs.subject.title : (rs.summary ? "Nothing in Playing" : "RLog")
+                        color: "#ffffff"
+                        font.pixelSize: rs.px(15)
+                        font.bold: true
+                        elide: Text.ElideRight
+                        style: Text.Raised
+                        styleColor: Qt.rgba(0, 0, 0, 0.5)
+                    }
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: rs.px(6)
+                    Rectangle {
+                        readonly property string yr: !rs.cleanser && rs.current ? (rs.current.release_year || "") : ""
+                        visible: yr.length > 0
+                        Layout.preferredWidth: yrText.implicitWidth + rs.px(10)
+                        Layout.preferredHeight: rs.px(16)
+                        radius: 4
+                        color: Qt.rgba(0, 0, 0, 0.45)
+                        Text {
+                            id: yrText
+                            anchors.centerIn: parent
+                            text: parent.yr
+                            color: "#e2e6ee"
+                            font.family: "monospace"
+                            font.bold: true
+                            font.pixelSize: rs.px(10)
+                        }
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: rs.launching ? "Starting…" : (rs.launchError || rs.metaLine())
+                        color: rs.launchError ? "#ff6b6b" : "#c2c9d6"
+                        font.pixelSize: rs.px(11)
+                        elide: Text.ElideRight
+                    }
+                }
+                Rectangle {
+                    visible: !rs.cleanser && !!(rs.current && rs.current.main_h)
+                    Layout.fillWidth: true
+                    Layout.topMargin: rs.px(2)
+                    Layout.preferredHeight: rs.px(3)
+                    radius: height / 2
+                    color: Qt.rgba(1, 1, 1, 0.12)
+                    Rectangle {
+                        height: parent.height
+                        radius: parent.radius
+                        color: rs.green
+                        width: rs.current && rs.current.main_h ? parent.width * Math.min(1, (rs.current.played_h || 0) / rs.current.main_h) : 0
+                    }
                 }
             }
-            Rectangle {
-                visible: !!rs.current || rs.cleanser
-                width: rs.px(7); height: width; radius: width / 2
-                color: rs.cleanser ? rs.mute : rs.green
-                border.width: rs.running ? rs.px(3) : 0
-                border.color: rs.cleanser ? Qt.rgba(0.42, 0.45, 0.52, 0.35) : Qt.rgba(0.20, 0.83, 0.60, 0.3)
-            }
-            Text {
-                Layout.fillWidth: true
-                textFormat: Text.StyledText
-                elide: Text.ElideRight
-                color: "#ffffff"
-                font.pixelSize: rs.px(12)
-                text: rs.cleanser
-                      ? rs.running.title + " <font color='#6b7385'>· palate cleanser</font>"
-                      : rs.current
-                      ? rs.current.title + (rs.current.franchise ? " <font color='#6b7385'>· " + rs.current.franchise.done + "/" + rs.current.franchise.total + "</font>" : "")
-                      : (rs.summary ? "<font color='#6b7385'>Nothing in Playing</font>"
-                                 : "<font color='#6b7385'>" + (rs.error || "Loading…") + "</font>")
-            }
-            Text {
-                text: rs.finishPrompt && !rs.cleanser ? "Finished?"
-                      : rs.movePrompt ? "Playing?"
-                      : rs.running ? rs.running.minutes + " min"
-                      : rs.rowRight(rs.current)
-                color: (rs.finishPrompt && !rs.cleanser) || rs.movePrompt ? "#fbbf24" : rs.ink2
-                font.family: "monospace"
-                font.pixelSize: rs.px(11)
+
+            ColumnLayout {
+                Layout.alignment: Qt.AlignBottom
+                Layout.bottomMargin: rs.px(10)
+                spacing: rs.px(6)
+                Text {
+                    Layout.alignment: Qt.AlignRight
+                    text: rs.finishPrompt && !rs.cleanser ? "Finished?"
+                          : rs.movePrompt ? "Playing?"
+                          : rs.running ? rs.running.minutes + " min"
+                          : rs.rowRight(rs.current)
+                    color: (rs.finishPrompt && !rs.cleanser) || rs.movePrompt ? "#fbbf24" : rs.ink2
+                    font.family: "monospace"
+                    font.bold: true
+                    font.pixelSize: rs.px(11)
+                }
+                PlayButton {
+                    Layout.alignment: Qt.AlignRight
+                    itemId: !rs.cleanser && rs.current && !rs.launching ? rs.current.item_id : ""
+                }
             }
         }
+
         MouseArea {
             id: rowArea
             anchors.fill: parent
+            z: -1
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: rs.toggle()
@@ -559,7 +717,12 @@ Item {
                                 font.bold: true
                                 elide: Text.ElideRight
                             }
+                            PlayButton {
+                                size: rs.px(28)
+                                itemId: det.d && !rs.launching ? det.d.item_id : ""
+                            }
                             Text {
+                                visible: !(det.d && rs.canPlay(det.d.item_id))
                                 textFormat: Text.StyledText
                                 text: "<b>R<font color='#34d399'>log</font></b>"
                                 color: "#ffffff"
@@ -1081,6 +1244,13 @@ Item {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: if (rs.current) rs.openDetail(rs.current.item_id)
+                        }
+                        PlayButton {
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            anchors.margins: rs.px(10)
+                            size: rs.px(32)
+                            itemId: rs.current && !rs.launching ? rs.current.item_id : ""
                         }
                     }
 

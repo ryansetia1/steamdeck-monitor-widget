@@ -90,6 +90,22 @@ The island toggles from the row, closes on Esc/✕, when focus leaves, or when t
 - Tests: `python3 -m unittest discover tests` (they build a temporary ROM tree). When testing live with a
   fake emulator process, delete `rlog-sessions.json` afterwards so fake minutes never reach RLog.
 
+### Play button (rlog_launch.py)
+
+The banner row (screenshot behind via `/rlog/media`, cover, title, year, ▶), the island's top card and
+the detail header have a ▶ that `POST /rlog/play {item_id}`. `bin/rlog_launch.py` launches like ES-DE:
+- Steam games: `xdg-open steam://rungameid/<appid>` when installed (appmanifest exists).
+- ROMs: indexes ES-DE's ROMDirectory (read from `~/ES-DE/settings/es_settings.xml` as text: the file has
+  no root element), only folders that are ES-DE systems (EmuDeck's alias folders like `gamecube` are
+  skipped), best file per game (.m3u > .cue > .chd …, never "(Track n)"). The command: the system's
+  `<command>` from ES-DE's bundled es_systems.xml (extracted once from the AppImage into
+  `~/.cache/deck-monitor/es-de/`) overridden by `~/ES-DE/custom_systems`, the label picked in
+  `gamelists/<system>/gamelist.xml` (`<altemulator>` per game, `<alternativeEmulator>` per system; read as
+  text too), `%EMULATOR_x%`/`%CORE_x%` via find rules (custom first: EmuDeck launchers). Games whose command
+  doesn't resolve aren't in `playable`.
+- PS3 games installed in RPCS3 (`storage/rpcs3/dev_hdd0/game/*/PARAM.SFO`): RPCS3 `--no-gui` EBOOT.BIN.
+- `Kirigami.ShadowedImage` doesn't render under `QT_QPA_PLATFORM=offscreen`; check the banner on the desktop.
+
 ## Service tiles
 
 Clicking a service tile (compact card in `main.qml`, rows in `DashboardView.qml` via the

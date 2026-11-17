@@ -30,7 +30,8 @@ PlasmoidItem {
     readonly property string rlogPinned: (Plasmoid.configuration && Plasmoid.configuration.rlogPinned) || ""
     // Bottom rows: one divider + each shown row (34 at font 12), with the card layout's 9px spacing
     readonly property int bottomRowH: Math.round(34 * compactWidth / 320) + 9
-    readonly property int gamesRowHeight: (showGames || showRlog) ? 1 + 9 + (showGames ? bottomRowH : 0) + (showRlog ? bottomRowH : 0) : 0
+    readonly property int rlogRowH: Math.round(98 * compactWidth / 320) + 9      // RLog banner
+    readonly property int gamesRowHeight: (showGames || showRlog) ? 1 + 9 + (showGames ? bottomRowH : 0) + (showRlog ? rlogRowH : 0) : 0
 
     // Services the user chose to show (same order everywhere). Compact card: two per row, an odd
     // last one takes the full row; none = the whole SERVICES block is hidden.
