@@ -476,9 +476,11 @@ Item {
         id: bannerRow
         anchors.fill: parent
 
+        // The picture sits 1px inside the dark overlay so its antialiased edge never shows as a light rim.
         Kirigami.ShadowedImage {
             anchors.fill: parent
-            radius: rs.px(10)
+            anchors.margins: 1
+            radius: rs.px(10) - 1
             color: "#11131a"
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
@@ -495,8 +497,15 @@ Item {
                 GradientStop { position: 0.42; color: Qt.rgba(0.055, 0.063, 0.086, 0.82) }
                 GradientStop { position: 1.0; color: Qt.rgba(0.055, 0.063, 0.086, 0.25) }
             }
+        }
+        // Green outline while the island is open (no outline otherwise)
+        Rectangle {
+            anchors.fill: parent
+            radius: rs.px(10)
+            color: "transparent"
+            visible: rs.open_
             border.width: 1
-            border.color: rs.open_ ? rs.green : Qt.rgba(1, 1, 1, 0.06)
+            border.color: rs.green
         }
 
         Rectangle {
