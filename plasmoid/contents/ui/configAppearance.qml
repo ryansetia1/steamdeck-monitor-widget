@@ -24,6 +24,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_deckFullscreen: deckFullscreenCheck.checked
     property alias cfg_deckSolidBg: deckSolidBgCheck.checked
     property alias cfg_showGames: showGamesCheck.checked
+    property alias cfg_showRlog: showRlogCheck.checked
     property alias cfg_showSyncthing: svcSyncthing.checked
     property alias cfg_showDropbox: svcDropbox.checked
     property alias cfg_showGDrive: svcGDrive.checked
@@ -190,6 +191,22 @@ KCMUtils.SimpleKCM {
 
         QQC2.Label {
             text: i18n("Shown on the floating card (two per row) and the docked dashboard. Uncheck all to hide the Services section.")
+            color: Kirigami.Theme.disabledTextColor
+            font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+        }
+
+        Item { Kirigami.FormData.isSection: true }
+
+        QQC2.CheckBox {
+            id: showRlogCheck
+            Kirigami.FormData.label: i18n("RLog:")
+            text: i18n("Show the RLog row (Playing and Up next)")
+        }
+
+        QQC2.Label {
+            text: i18n("Reads r-log.vercel.app through the monitor daemon. The token lives in ~/.config/rlog/widget.env (WIDGET_TOKEN=…). The island uses the same background as the results island below.")
             color: Kirigami.Theme.disabledTextColor
             font.pixelSize: Kirigami.Theme.smallFont.pixelSize
             Layout.fillWidth: true

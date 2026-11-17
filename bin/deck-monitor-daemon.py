@@ -20,6 +20,10 @@ try:
     import games_steamaf
 except Exception:
     games_hltb = games_steamaf = None
+try:
+    import rlog_island   # RLog island (Playing / Up next); optional like the game search
+except Exception:
+    rlog_island = None
 
 CACHE_DATA = {}
 LOCK = threading.Lock()
@@ -699,8 +703,22 @@ def games_request(path, qs):
 class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parts = urllib.parse.urlsplit(self.path)
-        if parts.path.startswith('/games/'):
-            code, payload = games_request(parts.path, urllib.parse.parse_qs(parts.query))
+        if parts.path.startswith('/games/') or parts.path.startswith('/rlog'):
+            if parts.path.startswith('/rlog'):
+                q = urllib.parse.parse_qs(parts.query)
+                arg = lambda k: (q.get(k) or [''])[0].strip()
+                if rlog_island is None:
+                    code, payload = 503, {'ok': False, 'error': 'RLog helper is not installed'}
+                elif parts.path == '/rlog':
+                    code, payload = 200, rlog_island.summary(arg('refresh') == '1')
+                elif parts.path == '/rlog/detail':
+                    code, payload = 200, rlog_island.detail(arg('item'))
+                elif parts.path == '/rlog/media':
+                    code, payload = 200, rlog_island.media(arg('igdb'), arg('steam'))
+                else:
+                    code, payload = 404, {'ok': False, 'error': 'unknown endpoint'}
+            else:
+                code, payload = games_request(parts.path, urllib.parse.parse_qs(parts.query))
             body = json.dumps(payload).encode('utf-8')
             self.send_response(code)
             self.send_header('Content-Type', 'application/json')

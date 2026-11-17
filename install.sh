@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 mkdir -p "$HOME/.local/bin"
 cp "$SCRIPT_DIR/bin/deck-monitor-daemon.py" "$HOME/.local/bin/"
 chmod +x "$HOME/.local/bin/deck-monitor-daemon.py"
-cp "$SCRIPT_DIR/bin/games_hltb.py" "$SCRIPT_DIR/bin/games_steamaf.py" "$HOME/.local/bin/"
+cp "$SCRIPT_DIR/bin/games_hltb.py" "$SCRIPT_DIR/bin/games_steamaf.py" "$SCRIPT_DIR/bin/rlog_island.py" "$HOME/.local/bin/"
 echo "[✓] Daemon script copied to ~/.local/bin/deck-monitor-daemon.py"
 
 # 2. Install systemd user service

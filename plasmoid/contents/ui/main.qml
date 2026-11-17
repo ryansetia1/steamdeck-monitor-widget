@@ -25,7 +25,12 @@ PlasmoidItem {
     property bool gamesMainStory: !!(Plasmoid.configuration && Plasmoid.configuration.gamesMainStory)
     property int gamesIslandStyle: (Plasmoid.configuration && Plasmoid.configuration.gamesIslandStyle) || 0
     property real gamesIslandOpacity: ((Plasmoid.configuration && Plasmoid.configuration.gamesIslandOpacity) || 94) / 100
-    readonly property int gamesRowHeight: showGames ? Math.round(34 * compactWidth / 320) + 1 + 2 * 9 : 0   // search row + divider + layout spacing
+    // RLog row (Playing / Up next island) above the game search
+    property bool showRlog: (Plasmoid.configuration && Plasmoid.configuration.showRlog !== undefined) ? Plasmoid.configuration.showRlog : true
+    readonly property string rlogPinned: (Plasmoid.configuration && Plasmoid.configuration.rlogPinned) || ""
+    // Bottom rows: one divider + each shown row (34 at font 12), with the card layout's 9px spacing
+    readonly property int bottomRowH: Math.round(34 * compactWidth / 320) + 9
+    readonly property int gamesRowHeight: (showGames || showRlog) ? 1 + 9 + (showGames ? bottomRowH : 0) + (showRlog ? bottomRowH : 0) : 0
 
     // Services the user chose to show (same order everywhere). Compact card: two per row, an odd
     // last one takes the full row; none = the whole SERVICES block is hidden.
@@ -987,15 +992,31 @@ PlasmoidItem {
                     }
                 }
 
-                // --- GAME SEARCH (steamAF + HowLongToBeat) ---
+                // --- RLOG + GAME SEARCH (steamAF + HowLongToBeat) ---
                 Rectangle {
-                    visible: root.showGames
+                    visible: root.showGames || root.showRlog
                     Layout.fillWidth: true
                     height: 1
                     color: container.tileColor("#242834")
                 }
 
+                RlogSection {
+                    visible: root.showRlog
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: implicitHeight
+                    anchorItem: mainCard
+                    fs: root.compactWidth / 320
+                    glassMode: root.effectiveGlassMode
+                    glassOpacity: root.glassOpacity
+                    islandStyle: root.gamesIslandStyle
+                    islandOpacity: root.gamesIslandOpacity
+                    otherIslandOpen: gamesSection.islandOpen
+                    pinned: root.rlogPinned
+                    onPinRequested: (id) => Plasmoid.configuration.rlogPinned = id
+                }
+
                 GamesSection {
+                    id: gamesSection
                     visible: root.showGames
                     Layout.fillWidth: true
                     Layout.preferredHeight: implicitHeight

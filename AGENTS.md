@@ -51,6 +51,26 @@ over `XMLHttpRequest`; the standalone widgets run their helper through the Plasm
   auto-placement; it flipped the island above the widget. The island is open while the focused
   search field has content and closes when the field loses focus.
 
+## RLog row (Playing / Up next)
+
+`RlogSection.qml` sits above the game search: one row naming the Playing game on top, and an island
+(same Dialog pattern and background setting as the search island) with that game large, the other
+Playing games as a carousel (tap = swap the top card, stored in config `rlogPinned`) and the queue's
+top three. Read-only: taps open RLog (`https://r-log.vercel.app/#/home?m=game&game=<entry id>`).
+The island toggles from the row, closes on Esc/✕, when focus leaves, or when the search island opens.
+
+- Daemon: `GET /rlog` (`?refresh=1` forces) → `bin/rlog_island.py`, which fetches RLog's
+  `/api/widget` with `WIDGET_TOKEN` from `~/.config/rlog/widget.env` (never put the token in the repo or
+  Plasma config), caches 10 min in memory and `~/.cache/deck-monitor/rlog.json` for offline.
+- The summary is shaped in the RLog repo (`src/widget.ts`); change fields there, not here.
+- Product rules (palate cleansers stay silent, once-only snoozable chips) are in RLog's
+  `docs/PLAN.md` "Deck Monitor integration"; D2 (running-game detection) builds on this.
+- Config: `showRlog`, `rlogPinned` (group `RLog`). `gamesRowHeight` in `main.qml` counts both rows.
+- Detail page (top card / Up next / franchise member tap): `GET /rlog/detail?item=<item id>` (RLog
+  `/api/widget?item=`) and `GET /rlog/media?igdb=&steam=` (RLog's public `/api/igdb?op=media`, shaped
+  for `MediaCarousel.qml`; YouTube trailers are dropped). ‹ / Esc goes back through `trail`; the
+  detail scrolls when taller than the screen (`maxDetailH`). Theater = the shared `MediaTheater.qml`.
+
 ## Service tiles
 
 Clicking a service tile (compact card in `main.qml`, rows in `DashboardView.qml` via the

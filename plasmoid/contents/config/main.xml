@@ -67,4 +67,15 @@
       <default>94</default>
     </entry>
   </group>
+
+  <group name="RLog">
+    <entry name="showRlog" type="Bool">
+      <label>Show the RLog row (Playing / Up next island) above the game search</label>
+      <default>true</default>
+    </entry>
+    <entry name="rlogPinned" type="String">
+      <label>RLog entry id picked in the island's Playing carousel (the top card)</label>
+      <default></default>
+    </entry>
+  </group>
 </kcfg>
