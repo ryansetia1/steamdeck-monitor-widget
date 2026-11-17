@@ -19,6 +19,7 @@ Item {
     property real islandOpacity: 0.94
     property bool otherIslandOpen: false  // the search island took the spot: close ours
     property string pinned: ""            // entry id picked in the carousel (widget config)
+    property real pinnedAt: 0             // when it was picked (ms)
     signal pinRequested(string entryId)
 
     property real fs: 1
@@ -76,6 +77,20 @@ Item {
     readonly property var movePrompt: cleanser && running.item_id ? promptFor(running.item_id, "playing") : null
     // Starting a Playing game makes it the top card from then on (until you pick another).
     onRunningPlayingChanged: if (runningPlaying && runningPlaying.entry_id !== pinned) pinRequested(runningPlaying.entry_id)
+    // Same for a Playing game played while the widget wasn't looking (Game Mode): if it was played
+    // after the last pick, it becomes the top card. Palate cleansers never take over.
+    readonly property var lastPlayed: now ? now.last_played : null
+    onLastPlayedChanged: followLastPlayed()
+    onSummaryChanged: followLastPlayed()
+    function followLastPlayed() {
+        var l = lastPlayed;
+        if (!l || !l.item_id || l.at <= pinnedAt) return;
+        for (var i = 0; i < playing.length; i++)
+            if (playing[i].item_id === l.item_id) {
+                if (playing[i].entry_id !== pinned) pinRequested(playing[i].entry_id);
+                return;
+            }
+    }
 
     function answer(p, action, days) {
         var xhr = new XMLHttpRequest();
@@ -172,7 +187,11 @@ Item {
     property var media: []
     property int detailReq: 0
     readonly property bool detailOpen: trail.length > 0
-    readonly property int maxDetailH: Math.max(px(240), screenRect.y + screenRect.height - islandTop - px(6) - 2 * pad - px(16))
+    // Bottom of the usable area: above the taskbar when the containment reports it, else the screen edge.
+    property rect availableRect: Qt.rect(0, 0, 0, 0)    // screen-local, from Plasmoid.containment
+    readonly property real usableBottom: availableRect.height > 0 ? screenRect.y + availableRect.y + availableRect.height
+                                                                  : screenRect.y + screenRect.height - px(48)
+    readonly property int maxDetailH: Math.max(px(240), usableBottom - islandTop - px(6) - 2 * pad - px(12))
     property int islandTop: 0
     readonly property rect screenRect: Qt.rect(Screen.virtualX, Screen.virtualY, Screen.width, Screen.height)
 
@@ -917,12 +936,44 @@ Item {
                                     elide: Text.ElideRight
                                     text: det.d && det.d.franchise ? det.d.franchise.name.toUpperCase() + " · " + det.d.franchise.done + " OF " + det.d.franchise.total + " FINISHED" : ""
                                 }
-                                Repeater {
+                                ListView {
+                                    id: frList
+                                    readonly property int rowH: rs.px(25)
+                                    readonly property int maxRows: 7
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: Math.min(count, maxRows) * rowH
+                                    clip: true
+                                    interactive: count > maxRows
+                                    boundsBehavior: Flickable.StopAtBounds
                                     model: det.d && det.d.franchise ? det.d.franchise.members : []
+                                    // Open with this game in view (a bit of context above it)
+                                    onModelChanged: Qt.callLater(function () {
+                                        var m = frList.model || [];
+                                        for (var i = 0; i < m.length; i++)
+                                            if (m[i].here) { frList.contentY = Math.max(0, Math.min((i - 2) * frList.rowH, frList.contentHeight - frList.height)); return; }
+                                        frList.contentY = 0;
+                                    })
+                                    // Fade hints at the cut edges
+                                    Rectangle {
+                                        z: 2; anchors { left: parent.left; right: parent.right; top: parent.top }
+                                        height: rs.px(14); visible: frList.contentY > 1
+                                        gradient: Gradient {
+                                            GradientStop { position: 0; color: rs.tileColor("#212532") }
+                                            GradientStop { position: 1; color: "transparent" }
+                                        }
+                                    }
+                                    Rectangle {
+                                        z: 2; anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+                                        height: rs.px(14); visible: frList.contentY + frList.height < frList.contentHeight - 1
+                                        gradient: Gradient {
+                                            GradientStop { position: 0; color: "transparent" }
+                                            GradientStop { position: 1; color: rs.tileColor("#212532") }
+                                        }
+                                    }
                                     delegate: Rectangle {
                                         required property var modelData
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: rs.px(25)
+                                        width: frList.width
+                                        height: frList.rowH
                                         radius: 6
                                         color: memArea.containsMouse && !modelData.here ? rs.tileColor("#2a2f3d") : "transparent"
                                         RowLayout {

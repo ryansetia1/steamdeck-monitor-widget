@@ -402,7 +402,7 @@ def _local_minutes(item_id, since_ms=0):
 
 
 def now_state(now=None):
-    """{running, prompts, push_error} for the island."""
+    """{running, last_played, prompts, push_error} for the island."""
     now = now or time.time()
     with _lock:
         pace = (_catalog.get('pace') or {}).get('ratio') or 1.0
@@ -416,6 +416,14 @@ def now_state(now=None):
                 'entry_id': g['entry_id'] if g else None, 'status': g['status'] if g else None,
                 'link': g['link'] if g else None,
             }
+        # Latest matched game played on this Deck, in any mode (Game Mode too): the widget makes it the top card.
+        last = None
+        for s in _state['sessions']:
+            if s.get('item_id') and (not last or s['end'] > last['at']):
+                last = {'item_id': s['item_id'], 'at': s['end']}
+        for s in _live.values():
+            if s.get('game') and (not last or s['last_seen'] * 1000 > last['at']):
+                last = {'item_id': s['game']['item_id'], 'at': int(s['last_seen'] * 1000)}
         prompts = []
         for g in _catalog['games']:
             main = g.get('main_h') or 0
@@ -435,7 +443,7 @@ def now_state(now=None):
                     prompts.append({'kind': 'playing', 'item_id': g['item_id'], 'entry_id': g['entry_id'], 'title': g['title'],
                                     'played_h': round(fresh, 1), 'main_h': main, 'pace': pace, 'target_h': round(target, 1),
                                     'link': g['link']})
-        return {'running': running, 'prompts': prompts, 'push_error': _push_error}
+        return {'running': running, 'last_played': last, 'prompts': prompts, 'push_error': _push_error}
 
 
 def answer(item_id, kind, action, days=0):

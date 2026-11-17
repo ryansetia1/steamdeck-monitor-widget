@@ -28,6 +28,7 @@ PlasmoidItem {
     // RLog row (Playing / Up next island) above the game search
     property bool showRlog: (Plasmoid.configuration && Plasmoid.configuration.showRlog !== undefined) ? Plasmoid.configuration.showRlog : true
     readonly property string rlogPinned: (Plasmoid.configuration && Plasmoid.configuration.rlogPinned) || ""
+    readonly property real rlogPinnedAt: Number((Plasmoid.configuration && Plasmoid.configuration.rlogPinnedAt) || 0)
     // Bottom rows: one divider + each shown row (34 at font 12), with the card layout's 9px spacing
     readonly property int bottomRowH: Math.round(34 * compactWidth / 320) + 9
     readonly property int rlogRowH: Math.round(98 * compactWidth / 320) + 9      // RLog banner
@@ -1013,7 +1014,12 @@ PlasmoidItem {
                     islandOpacity: root.gamesIslandOpacity
                     otherIslandOpen: gamesSection.islandOpen
                     pinned: root.rlogPinned
-                    onPinRequested: (id) => Plasmoid.configuration.rlogPinned = id
+                    pinnedAt: root.rlogPinnedAt
+                    onPinRequested: (id) => {
+                        Plasmoid.configuration.rlogPinned = id;
+                        Plasmoid.configuration.rlogPinnedAt = String(Date.now());
+                    }
+                    availableRect: Plasmoid.containment ? Plasmoid.containment.availableScreenRect : Qt.rect(0, 0, 0, 0)
                 }
 
                 GamesSection {

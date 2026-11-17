@@ -138,6 +138,18 @@ class Sessions(unittest.TestCase):
         t._maybe_push(now, force=True)
         self.assertEqual(len(self.posted), 1, 'unchanged totals are not sent again')
 
+    def test_last_played_is_the_latest_matched_game(self):
+        self.assertIsNone(t.now_state()['last_played'])
+        now, mono = self.play(['pcsx2-qt', rom('/ps2/Grand Theft Auto III (USA).chd')], 5)
+        t.tick(now=now + 120, mono=mono + 120, cmdlines=[])
+        self.assertEqual(t.now_state()['last_played']['item_id'], 'gta3')
+        self.play(['retroarch', rom('/arcade/mslug3.zip')], 5, start=now + 600)   # unmatched: ignored
+        self.assertEqual(t.now_state()['last_played']['item_id'], 'gta3')
+        self.play(['/x/reaper', 'SteamLaunch', 'AppId=48190', '--', 'ACB.exe'], 3, start=now + 2000)
+        last = t.now_state()['last_played']
+        self.assertEqual(last['item_id'], 'acb', 'a live game counts too')
+        self.assertGreater(last['at'], (now + 2000) * 1000)
+
     def test_suspend_does_not_count(self):
         args = ['pcsx2-qt', rom('/ps2/Grand Theft Auto III (USA).chd')]
         t.tick(now=0.0, mono=0.0, cmdlines=[args])

@@ -57,6 +57,10 @@ over `XMLHttpRequest`; the standalone widgets run their helper through the Plasm
 (same Dialog pattern and background setting as the search island) with that game large, the other
 Playing games as a carousel (tap = swap the top card, stored in config `rlogPinned`) and the queue's
 top three. Read-only: taps open RLog (`https://r-log.vercel.app/#/home?m=game&game=<entry id>`).
+The top card follows play: a running Playing game takes over, and so does one played while the widget
+wasn't looking (Game Mode): the tracker's `now.last_played` `{item_id, at}` wins when `at` is newer than
+`rlogPinnedAt` (set on every pin). Palate cleansers never take over. The franchise list on the detail
+page scrolls on its own (7 rows); the detail page is capped above the taskbar (`availableScreenRect`).
 The island toggles from the row, closes on Esc/✕, when focus leaves, or when the search island opens.
 
 - Daemon: `GET /rlog` (`?refresh=1` forces) → `bin/rlog_island.py`, which fetches RLog's
