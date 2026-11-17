@@ -411,8 +411,13 @@ Item {
     // ── The row in the card: a banner (screenshot behind, cover, title, year, ▶ Play) ──
     // The game it shows: the running palate cleanser, else the top card's game.
     readonly property var subject: cleanser ? running : current
-    readonly property string bannerShot: current && !cleanser ? (shots[current.item_id] || "") : ""
-    property var shots: ({})              // item id -> screenshot url ("" = none)
+    // Every screenshot of the game; the banner shows the next one each hour (crossfaded).
+    readonly property var bannerShots: current && !cleanser ? (shots[current.item_id] || []) : []
+    readonly property string bannerShot: bannerShots.length ? bannerShots[hourIndex % bannerShots.length] : ""
+    property var shots: ({})              // item id -> [screenshot urls] ([] = none)
+    // Hours since the epoch: the same picture for everyone at a given hour, and it survives restarts.
+    property int hourIndex: Math.floor(Date.now() / 3600000)
+    Timer { interval: 60 * 1000; running: true; repeat: true; onTriggered: rs.hourIndex = Math.floor(Date.now() / 3600000) }
     property var playable: now ? (now.playable || []) : []
     function canPlay(itemId) { return !!itemId && !running && playable.indexOf(itemId) >= 0; }
     property string launching: ""         // item id being started (shows "Starting…")
@@ -420,11 +425,11 @@ Item {
     function ensureShot(g) {
         if (!g || shots[g.item_id] !== undefined || !(g.igdb_id || g.steam_appid)) return;
         var id = g.item_id;
-        var m = Object.assign({}, shots); m[id] = ""; shots = m;
+        var m = Object.assign({}, shots); m[id] = []; shots = m;
         get("http://127.0.0.1:19842/rlog/media?igdb=" + (g.igdb_id || "") + "&steam=" + (g.steam_appid || ""), r => {
-            var pick = (r.media || []).filter(x => x.type === "image")[0];
-            if (!pick) return;
-            var n = Object.assign({}, rs.shots); n[id] = pick.thumb || pick.src; rs.shots = n;
+            var urls = (r.media || []).filter(x => x.type === "image").map(x => x.thumb || x.src).filter(u => !!u);
+            if (!urls.length) return;
+            var n = Object.assign({}, rs.shots); n[id] = urls; rs.shots = n;
         });
     }
     function playGame(itemId) {
@@ -477,16 +482,51 @@ Item {
         anchors.fill: parent
 
         // The picture sits 1px inside the dark overlay so its antialiased edge never shows as a light rim.
-        Kirigami.ShadowedImage {
+        Rectangle {
             anchors.fill: parent
             anchors.margins: 1
             radius: rs.px(10) - 1
             color: "#11131a"
-            fillMode: Image.PreserveAspectCrop
-            asynchronous: true
+        }
+        // Two layers take turns: the next picture loads behind, then fades in over the old one.
+        Item {
+            id: fader
+            anchors.fill: parent
+            anchors.margins: 1
             // A screenshot when there is one; otherwise the cover, dimmed.
-            source: rs.bannerShot || (rs.current && !rs.cleanser ? (rs.current.cover || "") : "")
-            opacity: rs.bannerShot ? 0.9 : 0.35
+            readonly property string want: rs.bannerShot || (rs.current && !rs.cleanser ? (rs.current.cover || "") : "")
+            readonly property real level: rs.bannerShot ? 0.9 : 0.35
+            property var front: layerA
+            onWantChanged: swap()
+            onLevelChanged: front.opacity = level
+            Component.onCompleted: swap()
+            function swap() {
+                if (front.source.toString() === want) return;
+                var back = front === layerA ? layerB : layerA;
+                back.source = want;
+                if (!want || back.status === Image.Ready) show(back);
+            }
+            function show(layer) {
+                if (layer === front && layer.opacity > 0) return;
+                var old = front;
+                front = layer;
+                fadeIn.target = layer; fadeIn.to = level; fadeIn.restart();
+                fadeOut.target = old; fadeOut.restart();
+            }
+            NumberAnimation { id: fadeIn; property: "opacity"; duration: 1200; easing.type: Easing.InOutQuad }
+            NumberAnimation { id: fadeOut; property: "opacity"; to: 0; duration: 1200; easing.type: Easing.InOutQuad }
+            component Layer: Kirigami.ShadowedImage {
+                id: lay
+                anchors.fill: parent
+                radius: rs.px(10) - 1
+                color: "transparent"
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: true
+                opacity: 0
+                onStatusChanged: if (status === Image.Ready && source.toString() === fader.want) fader.show(lay)
+            }
+            Layer { id: layerA }
+            Layer { id: layerB }
         }
         Rectangle {
             anchors.fill: parent
