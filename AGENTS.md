@@ -96,7 +96,7 @@ The island toggles from the row, closes on Esc/✕, when focus leaves, or when t
 
 ### Play button (rlog_launch.py)
 
-The banner row (screenshot behind via `/rlog/media`, cover, title, year, ▶), the island's top card and
+The banner row (screenshot behind via `/rlog/media`, cover, title, year, ▶) and
 the detail header have a ▶ that `POST /rlog/play {item_id}`. `bin/rlog_launch.py` launches like ES-DE:
 - Steam games: `xdg-open steam://rungameid/<appid>` when installed (appmanifest exists).
 - ROMs: indexes ES-DE's ROMDirectory (read from `~/ES-DE/settings/es_settings.xml` as text: the file has

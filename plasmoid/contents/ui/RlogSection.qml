@@ -1347,13 +1347,6 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: if (rs.current) rs.openDetail(rs.current.item_id)
                         }
-                        PlayButton {
-                            anchors.right: parent.right
-                            anchors.bottom: parent.bottom
-                            anchors.margins: rs.px(10)
-                            size: rs.px(32)
-                            itemId: rs.current && !rs.launching ? rs.current.item_id : ""
-                        }
                     }
 
                     PromptChip { p: rs.finishPrompt }
