@@ -71,6 +71,25 @@ The island toggles from the row, closes on Esc/✕, when focus leaves, or when t
   for `MediaCarousel.qml`; YouTube trailers are dropped). ‹ / Esc goes back through `trail`; the
   detail scrolls when taller than the screen (`maxDetailH`). Theater = the shared `MediaTheater.qml`.
 
+### What's running (RLog D2/D3)
+
+`bin/rlog_tracker.py` runs in a daemon thread (scan `/proc` every 20 s):
+- Detects Steam games (`AppId=` on the reaper, real app ids only; non-Steam shortcuts get huge ids and
+  are ignored) and emulator games (an emulator process whose argument is an existing ROM path; EmuDeck
+  `roms/<system>/` gives the platform via `SYSTEMS`; RPCS3/Vita3K/shadPS4 titles from PARAM.SFO).
+  A shell command that merely mentions a ROM is not a game (the argument must be one existing path).
+- Matches to RLog's `/api/widget?catalog=1` (cached 30 min, `~/.cache/deck-monitor/rlog-catalog.json`):
+  Steam app id, else `normalize()`d title + platform (`IGDB_NAMES` maps RLog names to IGDB's). Unsure =
+  no match = palate cleanser. Manual fixes: `~/.config/rlog/aliases.json` `{"rom title": "<item id>"}`.
+- Sessions (≥1 min, suspend-safe via monotonic time) in `~/.local/share/deck-monitor/rlog-sessions.json`.
+  Emulator minutes of matched games are totalled and POSTed to RLog every 10 min (`rlog_island._post`).
+- Prompts (`now_state()`, part of `GET /rlog` as `now`): `finished` for Playing games past HLTB main ×
+  pace; `playing` for non-Playing, non-completed games with main ≥ 5 h and Deck time since `status_at` ≥ 50%
+  of main × pace. `POST /rlog/prompt {item_id, kind, action: snooze|never, days: 3|7|30}` →
+  `~/.config/deck-monitor/rlog-prompts.json`. The island shows each as a chip, never a popup.
+- Tests: `python3 -m unittest discover tests` (they build a temporary ROM tree). When testing live with a
+  fake emulator process, delete `rlog-sessions.json` afterwards so fake minutes never reach RLog.
+
 ## Service tiles
 
 Clicking a service tile (compact card in `main.qml`, rows in `DashboardView.qml` via the

@@ -51,9 +51,40 @@ Item {
     property bool loading: false
     readonly property var playing: summary ? summary.playing : []
     readonly property var upNext: summary ? summary.up_next : []
+    // D2: what's running on the Deck right now (daemon's tracker), and the quiet prompts
+    property var now: null
+    readonly property var running: now ? now.running : null
+    readonly property var prompts: now ? (now.prompts || []) : []
+    readonly property var runningPlaying: {
+        if (!running || !running.entry_id) return null;
+        for (var i = 0; i < playing.length; i++) if (playing[i].entry_id === running.entry_id) return playing[i];
+        return null;
+    }
+    // Anything else running is a palate cleanser: shown, never asked about (except "Move to Playing?")
+    readonly property bool cleanser: !!running && !runningPlaying
     readonly property var current: {
+        if (runningPlaying) return runningPlaying;
         for (var i = 0; i < playing.length; i++) if (playing[i].entry_id === pinned) return playing[i];
         return playing.length ? playing[0] : null;
+    }
+    function promptFor(itemId, kind) {
+        for (var i = 0; i < prompts.length; i++) if (prompts[i].item_id === itemId && prompts[i].kind === kind) return prompts[i];
+        return null;
+    }
+    readonly property var finishPrompt: current ? promptFor(current.item_id, "finished") : null
+    readonly property var movePrompt: cleanser && running.item_id ? promptFor(running.item_id, "playing") : null
+    // Starting a Playing game makes it the top card from then on (until you pick another).
+    onRunningPlayingChanged: if (runningPlaying && runningPlaying.entry_id !== pinned) pinRequested(runningPlaying.entry_id)
+
+    function answer(p, action, days) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "http://127.0.0.1:19842/rlog/prompt");
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE || !rs) return;
+            try { var r = JSON.parse(xhr.responseText); if (r.now) rs.now = r.now; } catch (e) {}
+        };
+        xhr.send(JSON.stringify({ item_id: p.item_id, kind: p.kind, action: action, days: days || 0 }));
     }
 
     function load(refresh) {
@@ -68,13 +99,15 @@ Item {
             try { r = JSON.parse(xhr.responseText); }
             catch (e) { r = { ok: false, error: xhr.status ? "RLog failed (HTTP " + xhr.status + ")" : "Monitor daemon is not reachable" }; }
             if (r.data) rs.summary = r.data;
+            if (r.now !== undefined) rs.now = r.now;
             rs.stale = !!r.stale;
             rs.error = r.error || "";
         };
         xhr.send();
     }
     Component.onCompleted: load(false)
-    Timer { interval: 10 * 60 * 1000; running: true; repeat: true; onTriggered: rs.load(false) }
+    // Local call: the daemon caches RLog for 10 min; this mostly picks up what's running.
+    Timer { interval: 30 * 1000; running: true; repeat: true; onTriggered: rs.load(false) }
 
     // ── Formatting ──────────────────────────────────────────────────────────
     function fmtHours(h) {
@@ -264,6 +297,104 @@ Item {
         }
     }
 
+    // A quiet question about one game: asked once, snoozed or muted per game, never a popup.
+    component PromptChip: Rectangle {
+        id: chip
+        property var p: null
+        visible: !!p
+        Layout.fillWidth: true
+        Layout.preferredHeight: chipCol.implicitHeight + 2 * rs.px(10)
+        radius: 12
+        color: Qt.rgba(0.96, 0.77, 0.26, 0.12)
+        border.width: 1
+        border.color: Qt.rgba(0.96, 0.77, 0.26, 0.35)
+        readonly property bool fin: !!p && p.kind === "finished"
+        ColumnLayout {
+            id: chipCol
+            anchors.fill: parent
+            anchors.margins: rs.px(10)
+            spacing: rs.px(7)
+            Text {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: "#ffffff"
+                font.pixelSize: rs.px(12)
+                text: !chip.p ? "" : chip.fin
+                      ? chip.p.title + " is past your usual pace. Finished?"
+                      : "You've played " + chip.p.title + " ~" + rs.fmtHours(chip.p.played_h) + " lately. Move it to Playing?"
+            }
+            Text {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                textFormat: Text.StyledText
+                color: rs.ink2
+                font.pixelSize: rs.px(10)
+                text: !chip.p ? "" : "HLTB main ~" + rs.fmtHours(chip.p.main_h) + " × your pace " + chip.p.pace.toFixed(1)
+                      + "× = <b>~" + rs.fmtHours(chip.p.target_h) + "</b>" + (chip.fin ? " · played " + rs.fmtHours(chip.p.played_h) : "")
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: rs.px(6)
+                ChipButton {
+                    primary: true
+                    label: chip.fin ? "Finished…" : "Move to Playing"
+                    // Opens the game in RLog; asks again in 3 days if it's still not done there.
+                    onClicked: { rs.openUrl(chip.p.link); rs.answer(chip.p, "snooze", 3); }
+                }
+                Item { Layout.fillWidth: true }
+            }
+            Text {
+                color: rs.ink2
+                font.pixelSize: rs.px(10)
+                text: chip.fin ? "Not yet. Remind me in:" : "Not now. Ask again in:"
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: rs.px(6)
+                Repeater {
+                    model: [["3 days", 3], ["1 week", 7], ["1 month", 30]]
+                    delegate: ChipButton {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        label: modelData[0]
+                        onClicked: rs.answer(chip.p, "snooze", modelData[1])
+                    }
+                }
+            }
+            Text {
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                color: neverArea.containsMouse ? "#ffffff" : rs.mute
+                font.pixelSize: rs.px(10)
+                text: chip.fin ? "Don't ask again for this game" : "It's a palate cleanser, don't ask again"
+                MouseArea { id: neverArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: rs.answer(chip.p, "never") }
+            }
+        }
+    }
+
+    component ChipButton: Rectangle {
+        id: cb
+        property string label: ""
+        property bool primary: false
+        signal clicked()
+        Layout.preferredHeight: rs.px(26)
+        Layout.preferredWidth: cbText.implicitWidth + rs.px(20)
+        radius: 8
+        color: cb.primary ? (cbArea.containsMouse ? "#4ade80" : rs.green) : (cbArea.containsMouse ? rs.tileColor("#2f3647") : rs.tileColor("#212532"))
+        border.width: cb.primary ? 0 : 1
+        border.color: rs.tileColor("#2c3242")
+        Text {
+            id: cbText
+            anchors.centerIn: parent
+            text: cb.label
+            color: cb.primary ? "#06210f" : "#ffffff"
+            font.pixelSize: rs.px(11)
+            font.bold: true
+        }
+        MouseArea { id: cbArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: cb.clicked() }
+    }
+
     component Dot: Rectangle {
         width: rs.px(7); height: width; radius: width / 2
         color: rs.green
@@ -304,21 +435,32 @@ Item {
                     font.pixelSize: rs.px(11)
                 }
             }
-            Dot { visible: !!rs.current }
+            Rectangle {
+                visible: !!rs.current || rs.cleanser
+                width: rs.px(7); height: width; radius: width / 2
+                color: rs.cleanser ? rs.mute : rs.green
+                border.width: rs.running ? rs.px(3) : 0
+                border.color: rs.cleanser ? Qt.rgba(0.42, 0.45, 0.52, 0.35) : Qt.rgba(0.20, 0.83, 0.60, 0.3)
+            }
             Text {
                 Layout.fillWidth: true
                 textFormat: Text.StyledText
                 elide: Text.ElideRight
                 color: "#ffffff"
                 font.pixelSize: rs.px(12)
-                text: rs.current
+                text: rs.cleanser
+                      ? rs.running.title + " <font color='#6b7385'>· palate cleanser</font>"
+                      : rs.current
                       ? rs.current.title + (rs.current.franchise ? " <font color='#6b7385'>· " + rs.current.franchise.done + "/" + rs.current.franchise.total + "</font>" : "")
                       : (rs.summary ? "<font color='#6b7385'>Nothing in Playing</font>"
                                  : "<font color='#6b7385'>" + (rs.error || "Loading…") + "</font>")
             }
             Text {
-                text: rs.rowRight(rs.current)
-                color: rs.ink2
+                text: rs.finishPrompt && !rs.cleanser ? "Finished?"
+                      : rs.movePrompt ? "Playing?"
+                      : rs.running ? rs.running.minutes + " min"
+                      : rs.rowRight(rs.current)
+                color: (rs.finishPrompt && !rs.cleanser) || rs.movePrompt ? "#fbbf24" : rs.ink2
                 font.family: "monospace"
                 font.pixelSize: rs.px(11)
             }
@@ -790,6 +932,59 @@ Item {
                         text: rs.error || "Loading RLog…"
                     }
 
+                    // Running palate cleanser (anything not in Playing): shown, never asked about
+                    Rectangle {
+                        visible: rs.cleanser
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: nowCol.implicitHeight + 2 * rs.px(10)
+                        radius: 12
+                        color: "transparent"
+                        border.width: 1
+                        border.color: rs.tileColor("#2c3242")
+                        ColumnLayout {
+                            id: nowCol
+                            anchors.fill: parent
+                            anchors.margins: rs.px(10)
+                            spacing: rs.px(4)
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: rs.px(8)
+                                Rectangle { width: rs.px(7); height: width; radius: width / 2; color: rs.mute }
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: rs.running ? rs.running.title : ""
+                                    color: "#ffffff"
+                                    font.pixelSize: rs.px(12)
+                                    font.bold: true
+                                    elide: Text.ElideRight
+                                }
+                                Text {
+                                    text: rs.running ? rs.running.minutes + " min" : ""
+                                    color: rs.ink2
+                                    font.family: "monospace"
+                                    font.pixelSize: rs.px(10)
+                                }
+                            }
+                            Text {
+                                Layout.fillWidth: true
+                                wrapMode: Text.Wrap
+                                color: rs.mute
+                                font.pixelSize: rs.px(10)
+                                text: !rs.running ? "" : (rs.running.platform ? rs.running.platform + " · " : "")
+                                      + (rs.running.item_id ? rs.statusLabel(rs.running.status) + ". Not Playing, so it's a palate cleanser."
+                                                            : "Not in RLog, so it isn't tracked.")
+                            }
+                            Text {
+                                visible: !!(rs.running && rs.running.link) && !rs.movePrompt
+                                text: "Move to Playing ›"
+                                color: mvArea.containsMouse ? "#ffffff" : rs.ink2
+                                font.pixelSize: rs.px(11)
+                                MouseArea { id: mvArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: rs.openUrl(rs.running.link) }
+                            }
+                        }
+                    }
+                    PromptChip { p: rs.movePrompt }
+
                     // Top card: the picked (or most recently played) Playing game
                     Rectangle {
                         visible: !!rs.current
@@ -833,7 +1028,8 @@ Item {
                                         textFormat: Text.StyledText
                                         color: rs.ink2
                                         font.pixelSize: rs.px(11)
-                                        text: "Playing" + (rs.current && rs.current.platform ? " <font color='#6b7385'>· " + rs.current.platform + "</font>" : "")
+                                        text: (rs.runningPlaying ? "Playing now <font color='#6b7385'>· " + rs.running.minutes + " min</font>" : "Playing")
+                                              + (rs.current && rs.current.platform ? " <font color='#6b7385'>· " + rs.current.platform + "</font>" : "")
                                     }
                                 }
                                 Text {
@@ -887,6 +1083,8 @@ Item {
                             onClicked: if (rs.current) rs.openDetail(rs.current.item_id)
                         }
                     }
+
+                    PromptChip { p: rs.finishPrompt }
 
                     // Playing carousel: tap swaps the top card
                     SectionLabel {

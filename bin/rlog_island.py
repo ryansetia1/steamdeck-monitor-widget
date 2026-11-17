@@ -66,6 +66,30 @@ def _fetch(query):
     return _get(URL + '?' + urllib.parse.urlencode(query), {'Authorization': 'Bearer ' + token})
 
 
+def _post(body):
+    """POST JSON to /api/widget (D3: Deck emulator time)."""
+    token = _token()
+    if not token:
+        raise RuntimeError('No RLog token: add WIDGET_TOKEN to ~/.config/rlog/widget.env')
+    req = urllib.request.Request(URL, data=json.dumps(body).encode(), method='POST', headers={
+        'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'User-Agent': 'deck-monitor'})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        raise RuntimeError('RLog answered HTTP %d' % e.code)
+    except urllib.error.URLError:
+        raise RuntimeError("Can't reach RLog (offline?)")
+
+
+def invalidate():
+    """Fetch fresh on the next request (after the Deck sent new played time)."""
+    with _lock:
+        _state['fetched_at'] = 0
+        _state['tried_at'] = 0
+    _details.clear()
+
+
 def _get(url, headers=None):
     req = urllib.request.Request(url, headers=dict(headers or {}, **{'User-Agent': 'deck-monitor'}))
     try:

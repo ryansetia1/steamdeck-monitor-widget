@@ -22,8 +22,9 @@ except Exception:
     games_hltb = games_steamaf = None
 try:
     import rlog_island   # RLog island (Playing / Up next); optional like the game search
+    import rlog_tracker  # what's running on the Deck, sessions, prompts (RLog D2/D3)
 except Exception:
-    rlog_island = None
+    rlog_island = rlog_tracker = None
 
 CACHE_DATA = {}
 LOCK = threading.Lock()
@@ -710,7 +711,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 if rlog_island is None:
                     code, payload = 503, {'ok': False, 'error': 'RLog helper is not installed'}
                 elif parts.path == '/rlog':
-                    code, payload = 200, rlog_island.summary(arg('refresh') == '1')
+                    code, payload = 200, dict(rlog_island.summary(arg('refresh') == '1'), now=rlog_tracker.now_state())
                 elif parts.path == '/rlog/detail':
                     code, payload = 200, rlog_island.detail(arg('item'))
                 elif parts.path == '/rlog/media':
@@ -746,14 +747,18 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def do_POST(self):
-        if self.path not in ('/eject', '/prefs'):
+        if self.path not in ('/eject', '/prefs', '/rlog/prompt'):
             self.send_response(404)
             self.end_headers()
             return
         try:
             length = int(self.headers.get('Content-Length', 0))
             req = json.loads(self.rfile.read(length) or b'{}')
-            if self.path == '/prefs':
+            if self.path == '/rlog/prompt':
+                ok = rlog_tracker is not None and rlog_tracker.answer(
+                    str(req.get('item_id', '')), req.get('kind'), req.get('action'), int(req.get('days') or 0))
+                code, payload = (200 if ok else 400), {'ok': ok, 'now': rlog_tracker.now_state() if ok else None}
+            elif self.path == '/prefs':
                 ok = save_prefs(req)
                 code, payload = (200 if ok else 400), {'ok': ok, 'prefs': dict(PREFS)}
             else:
@@ -784,6 +789,8 @@ class ReusableHTTPServer(ThreadingHTTPServer):
 def main():
     threading.Thread(target=update_loop, daemon=True).start()
     threading.Thread(target=ping_loop, daemon=True).start()
+    if rlog_tracker is not None:
+        threading.Thread(target=rlog_tracker.loop, daemon=True).start()
     
     server_address = ('127.0.0.1', 19842)
     httpd = ReusableHTTPServer(server_address, RequestHandler)
