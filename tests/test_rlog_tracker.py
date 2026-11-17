@@ -69,6 +69,12 @@ class Detection(unittest.TestCase):
         path = rom('/ps2/Grand Theft Auto III (USA).chd')
         self.assertEqual(t.detect([['/bin/bash', '-c', 'nohup retroarch "%s" > /tmp/x-cwd' % path]]), [])
 
+    def test_steam_rom_manager_shortcut_alone(self):
+        # Only the shortcut's reaper is visible: it still names the emulator and the ROM.
+        dets = t.detect([['/home/deck/.local/share/Steam/ubuntu12_32/reaper', 'SteamLaunch', 'AppId=3290713221', '--',
+                          '/bin/bash', '/x/tools/launchers/pcsx2-qt.sh', rom('/ps2/Grand Theft Auto III (USA).chd')]])
+        self.assertEqual([(d['title'], d['platform']) for d in dets], [('Grand Theft Auto III', 'PS2')])
+
     def test_not_an_emulator(self):
         self.assertEqual(t.detect([['/usr/bin/rsync', '-a', rom('/gc/Resident Evil Zero (USA) (Disc 1).rvz'), '/backup']]), [])
         self.assertEqual(t.detect([['/home/deck/Applications/ES-DE.AppImage']]), [])

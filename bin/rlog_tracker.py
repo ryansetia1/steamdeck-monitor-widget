@@ -189,7 +189,8 @@ def detect(cmdlines=None):
             if 0 < appid < REAL_STEAM_APP:
                 found['steam:%d' % appid] = {'key': 'steam:%d' % appid, 'kind': 'steam', 'steam_appid': appid,
                                              'title': steam_name(appid) or 'Steam app %d' % appid, 'platform': 'Steam'}
-            continue
+                continue
+            # A non-Steam shortcut (Steam ROM Manager): its command names the emulator and ROM; read on.
         low = joined.lower()
         if not any(e in low for e in EMULATORS):
             continue
