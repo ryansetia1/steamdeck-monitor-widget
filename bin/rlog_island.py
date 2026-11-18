@@ -19,7 +19,7 @@ URL = APP + '/api/widget'
 MEDIA_URL = APP + '/api/igdb'   # public, CDN-cached: Steam trailers/screenshots, else IGDB's
 ENV_PATH = os.path.expanduser('~/.config/rlog/widget.env')
 CACHE_PATH = os.path.expanduser('~/.cache/deck-monitor/rlog.json')
-FRESH_FOR = 10 * 60          # seconds before a cached summary is fetched again
+FRESH_FOR = 3 * 60            # RLog changes on the phone show up within 3 min (island open: at once)
 RETRY_AFTER = 60             # after a failure, wait this long before trying again
 
 _lock = threading.Lock()

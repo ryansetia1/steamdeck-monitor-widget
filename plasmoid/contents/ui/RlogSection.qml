@@ -245,7 +245,7 @@ Item {
     readonly property bool islandOpen: open_ && rs.visible && !otherIslandOpen
     onOtherIslandOpenChanged: if (otherIslandOpen) open_ = false
     onIslandOpenChanged: {
-        if (islandOpen) { island.place(); load(false); }
+        if (islandOpen) { island.place(); load(true); }    // fresh from RLog (e.g. a change made on the phone)
         else { theater.close(); trail = []; detail = null; media = []; detailReq++; }
     }
     function toggle() {

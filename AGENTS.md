@@ -65,7 +65,7 @@ The island toggles from the row, closes on Esc/✕, when focus leaves, or when t
 
 - Daemon: `GET /rlog` (`?refresh=1` forces) → `bin/rlog_island.py`, which fetches RLog's
   `/api/widget` with `WIDGET_TOKEN` from `~/.config/rlog/widget.env` (never put the token in the repo or
-  Plasma config), caches 10 min in memory and `~/.cache/deck-monitor/rlog.json` for offline.
+  Plasma config), caches 3 min in memory (opening the island always refetches) and `~/.cache/deck-monitor/rlog.json` for offline.
 - The summary is shaped in the RLog repo (`src/widget.ts`); change fields there, not here.
 - Product rules (palate cleansers stay silent, once-only snoozable chips) are in RLog's
   `docs/PLAN.md` "Deck Monitor integration"; D2 (running-game detection) builds on this.
