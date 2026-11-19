@@ -75,6 +75,16 @@ Item {
     }
     readonly property var finishPrompt: current ? promptFor(current.item_id, "finished") : null
     readonly property var movePrompt: cleanser && running.item_id ? promptFor(running.item_id, "playing") : null
+    // "Continue <series>?" after finishing a game in it (one at a time; snoozed or muted per series).
+    readonly property var seriesPrompt: {
+        for (var i = 0; i < prompts.length; i++) if (prompts[i].kind === "series") return prompts[i];
+        return null;
+    }
+    function shortTitle(title, series) {
+        if (title.toLowerCase().indexOf(series.toLowerCase()) !== 0) return title;
+        var rest = title.slice(series.length).replace(/^[\s:\u2013\u2014-]+/, "");
+        return rest && !/^[0-9IVX]+$/.test(rest) ? rest : title;
+    }
     // Starting a Playing game makes it the top card from then on (until you pick another).
     onRunningPlayingChanged: if (runningPlaying && runningPlaying.entry_id !== pinned) pinRequested(runningPlaying.entry_id)
     // Same for a Playing game played while the widget wasn't looking (Game Mode): if it was played
@@ -98,9 +108,10 @@ Item {
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE || !rs) return;
-            try { var r = JSON.parse(xhr.responseText); if (r.now) rs.now = r.now; } catch (e) {}
+            try { var r = JSON.parse(xhr.responseText); if (r.now) rs.now = r.now; if (r.error) rs.error = r.error; } catch (e) {}
         };
-        xhr.send(JSON.stringify({ item_id: p.item_id, kind: p.kind, action: action, days: days || 0 }));
+        xhr.send(JSON.stringify({ item_id: p.item_id, kind: p.kind, action: action, days: days || 0,
+                                  finish: p.finished ? p.finished.completed_on : null }));
     }
 
     function load(refresh) {
@@ -389,6 +400,78 @@ Item {
                 font.pixelSize: rs.px(10)
                 text: chip.fin ? "Don't ask again for this game" : "It's a palate cleanser, don't ask again"
                 MouseArea { id: neverArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: rs.answer(chip.p, "never") }
+            }
+        }
+    }
+
+    // After a finish: the next game in that series, as a quiet reminder (never a popup).
+    component SeriesChip: Rectangle {
+        id: sc
+        property var p: null
+        visible: !!p
+        Layout.fillWidth: true
+        Layout.preferredHeight: scCol.implicitHeight + 2 * rs.px(10)
+        radius: 12
+        color: Qt.rgba(0.96, 0.77, 0.26, 0.12)
+        border.width: 1
+        border.color: Qt.rgba(0.96, 0.77, 0.26, 0.35)
+        readonly property var nx: p ? p.next : null
+        ColumnLayout {
+            id: scCol
+            anchors.fill: parent
+            anchors.margins: rs.px(10)
+            spacing: rs.px(7)
+            Text {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                textFormat: Text.StyledText
+                color: "#ffffff"
+                font.pixelSize: rs.px(12)
+                text: !sc.p ? "" : sc.p.name + ": <b>" + sc.p.done + " of " + sc.p.total + "</b> done."
+                      + (sc.nx ? " Next up: <b>" + rs.shortTitle(sc.nx.title, sc.p.name) + "</b>" + (sc.nx.year ? " (" + sc.nx.year + ")" : "") + "." : "")
+            }
+            Text {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: rs.ink2
+                font.pixelSize: rs.px(10)
+                visible: !!sc.nx
+                text: !sc.nx ? "" : (sc.nx.status ? "In your library" : "Not in your library yet")
+                      + (sc.nx.platforms && sc.nx.platforms.length ? " · " + sc.nx.platforms.join(" · ") : "")
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: rs.px(6)
+                ChipButton {
+                    primary: true
+                    label: "Open series"
+                    onClicked: { rs.openUrl(sc.p.link); rs.answer(sc.p, "done"); }
+                }
+                Item { Layout.fillWidth: true }
+            }
+            Text { color: rs.ink2; font.pixelSize: rs.px(10); text: "Not now. Remind me in:" }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: rs.px(6)
+                Repeater {
+                    model: [["1 week", 7], ["1 month", 30], ["3 months", 90]]
+                    delegate: ChipButton {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        label: modelData[0]
+                        onClicked: rs.answer(sc.p, "snooze", modelData[1])
+                    }
+                }
+            }
+            Text {
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+                color: scNever.containsMouse ? "#ffffff" : rs.mute
+                font.pixelSize: rs.px(10)
+                text: "Not a priority, don't remind me about this series"
+                MouseArea { id: scNever; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: rs.answer(sc.p, "never") }
             }
         }
     }
@@ -1350,6 +1433,7 @@ Item {
                     }
 
                     PromptChip { p: rs.finishPrompt }
+                    SeriesChip { p: rs.seriesPrompt }
 
                     // Playing carousel: tap swaps the top card
                     SectionLabel {

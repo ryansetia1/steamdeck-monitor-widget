@@ -82,6 +82,14 @@ def _post(body):
         raise RuntimeError("Can't reach RLog (offline?)")
 
 
+def hide_series(franchise_id):
+    """"Not a priority" for a series: the same flag as Hide in RLog. Raises on failure."""
+    r = _post({'hide_series': franchise_id})
+    if not r.get('ok'):
+        raise RuntimeError(r.get('error') or 'RLog did not hide the series')
+    invalidate()
+
+
 def invalidate():
     """Fetch fresh on the next request (after the Deck sent new played time)."""
     with _lock:

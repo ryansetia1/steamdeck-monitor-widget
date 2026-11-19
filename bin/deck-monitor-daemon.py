@@ -702,6 +702,14 @@ def games_request(path, qs):
         return 200, {'ok': False, 'error': str(e)[:120]}
     return 404, {'ok': False, 'error': 'unknown endpoint'}
 
+def rlog_now(summ):
+    """The island's live state: running game, prompts (plus the series reminder), playable games."""
+    now = dict(rlog_tracker.now_state(), playable=rlog_launch.playable())
+    series = rlog_tracker.series_prompt(summ.get('data'))
+    if series:
+        now['prompts'] = now['prompts'] + [series]
+    return now
+
 class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parts = urllib.parse.urlsplit(self.path)
@@ -712,8 +720,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                 if rlog_island is None:
                     code, payload = 503, {'ok': False, 'error': 'RLog helper is not installed'}
                 elif parts.path == '/rlog':
-                    now = dict(rlog_tracker.now_state(), playable=rlog_launch.playable())
-                    code, payload = 200, dict(rlog_island.summary(arg('refresh') == '1'), now=now)
+                    summ = rlog_island.summary(arg('refresh') == '1')
+                    code, payload = 200, dict(summ, now=rlog_now(summ))
                 elif parts.path == '/rlog/detail':
                     code, payload = 200, rlog_island.detail(arg('item'))
                 elif parts.path == '/rlog/media':
@@ -760,9 +768,16 @@ class RequestHandler(BaseHTTPRequestHandler):
                 payload = rlog_launch.play(str(req.get('item_id', ''))) if rlog_launch else {'ok': False, 'error': 'not installed'}
                 code = 200
             elif self.path == '/rlog/prompt':
+                item_id, kind, action = str(req.get('item_id', '')), req.get('kind'), req.get('action')
                 ok = rlog_tracker is not None and rlog_tracker.answer(
-                    str(req.get('item_id', '')), req.get('kind'), req.get('action'), int(req.get('days') or 0))
-                code, payload = (200 if ok else 400), {'ok': ok, 'now': rlog_tracker.now_state() if ok else None}
+                    item_id, kind, action, int(req.get('days') or 0), req.get('finish'))
+                error = None
+                if ok and kind == 'series' and action == 'never':
+                    try:
+                        rlog_island.hide_series(item_id)
+                    except Exception as e:
+                        error = 'Muted here, but RLog was not updated: %s' % str(e)[:100]
+                code, payload = (200 if ok else 400), {'ok': ok, 'error': error, 'now': rlog_now(rlog_island.summary()) if ok else None}
             elif self.path == '/prefs':
                 ok = save_prefs(req)
                 code, payload = (200 if ok else 400), {'ok': ok, 'prefs': dict(PREFS)}

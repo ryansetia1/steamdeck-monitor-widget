@@ -446,16 +446,37 @@ def now_state(now=None):
         return {'running': running, 'last_played': last, 'prompts': prompts, 'push_error': _push_error}
 
 
-def answer(item_id, kind, action, days=0):
-    """Snooze ('snooze', days) or mute ('never') one prompt for one game."""
-    if kind not in ('finished', 'playing') or not item_id or len(item_id) > 64:
+def series_prompt(summary, now=None):
+    """The summary's "Continue <series>?" reminder as a prompt, unless snoozed or muted for that series.
+
+    Keyed by franchise id (kind 'series'), asked once per finish: a later finish in the same series
+    (a new completed_on) asks again even after a snooze."""
+    s = (summary or {}).get('series_reminder')
+    if not s or not s.get('franchise_id'):
+        return None
+    now = now or time.time()
+    with _lock:
+        p = _prompts.get(s['franchise_id'], {}).get('series')
+    if p and (p.get('never') or (p.get('until', 0) > now * 1000 and p.get('finish') == s['finished']['completed_on'])):
+        return None
+    return dict(s, kind='series', item_id=s['franchise_id'])
+
+
+def answer(item_id, kind, action, days=0, finish=None):
+    """Snooze ('snooze', days) or mute ('never') one prompt for one game (or one series, kind 'series')."""
+    if kind not in ('finished', 'playing', 'series') or not item_id or len(item_id) > 64:
         return False
     with _lock:
         entry = _prompts.setdefault(item_id, {})
         if action == 'never':
             entry[kind] = {'never': True}
-        elif action == 'snooze' and days in (3, 7, 30):
+        elif action == 'done' and kind == 'series':
+            # Opened the series: asked and answered for this finish.
+            entry[kind] = {'until': int((time.time() + 3650 * 86400) * 1000), 'finish': finish}
+        elif action == 'snooze' and days in ((7, 30, 90) if kind == 'series' else (3, 7, 30)):
             entry[kind] = {'until': int((time.time() + days * 86400) * 1000)}
+            if kind == 'series':
+                entry[kind]['finish'] = finish
         else:
             return False
         _write(PROMPTS_PATH, _prompts)
