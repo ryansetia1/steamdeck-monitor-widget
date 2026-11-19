@@ -557,9 +557,17 @@ Item {
                                     }
 
                                     RowLayout {
+                                        id: priceLine
                                         Layout.fillWidth: true
                                         spacing: 6
+                                        // Price, discount, hours and the badge don't always fit ("No rush" is wide):
+                                        // the hours go first, they're also on the game's page.
+                                        readonly property bool roomForHours: priceText.implicitWidth
+                                            + (row.modelData.discount > 0 ? discText.implicitWidth + 8 + spacing : 0)
+                                            + hoursText.implicitWidth + gs.px(7) + spacing
+                                            + badge.implicitWidth + spacing + gs.px(4) <= width
                                         Text {
+                                            id: priceText
                                             text: row.modelData.price || "—"
                                             color: row.modelData.state ? gs.verdictColor(row.modelData.state) : "#cfd8dc"
                                             font.pixelSize: gs.px(11)
@@ -583,7 +591,7 @@ Item {
                                         // Main Story hours (optional, HLTB)
                                         Row {
                                             readonly property real hours: gs.mainHours[row.modelData.id] || 0
-                                            visible: gs.showMainStory && hours > 0
+                                            visible: gs.showMainStory && hours > 0 && priceLine.roomForHours
                                             spacing: 4
                                             Rectangle {
                                                 anchors.verticalCenter: parent.verticalCenter
@@ -591,6 +599,7 @@ Item {
                                                 color: "#f87171"
                                             }
                                             Text {
+                                                id: hoursText
                                                 anchors.verticalCenter: parent.verticalCenter
                                                 text: gs.fmtHours(parent.hours)
                                                 color: "#cfd8dc"
@@ -599,7 +608,7 @@ Item {
                                             }
                                         }
                                         Item { Layout.fillWidth: true }
-                                        VerdictBadge { verdict: row.modelData.state; small: true; fs: gs.fs }
+                                        VerdictBadge { id: badge; verdict: row.modelData.state; small: true; fs: gs.fs }
                                     }
                                 }
                             }
