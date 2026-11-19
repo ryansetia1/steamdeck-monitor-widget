@@ -213,6 +213,17 @@ Item {
     onIslandOpenChanged: { if (islandOpen) island.place(); else theater.close(); }
     onDetailChanged: if (!detail) theater.close()
     readonly property rect screenRect: Qt.rect(Screen.virtualX, Screen.virtualY, Screen.width, Screen.height)
+    // Bottom of the usable area: above the taskbar when the containment reports it, else the screen edge
+    // (same rule as the RLog island). The result lists show only the rows that fit above it.
+    property rect availableRect: Qt.rect(0, 0, 0, 0)    // screen-local, from Plasmoid.containment
+    readonly property real usableBottom: availableRect.height > 0 ? screenRect.y + availableRect.y + availableRect.height
+                                                                  : screenRect.y + screenRect.height - px(48)
+    property int islandTop: 0
+    // Room for a list: below the island's top, minus its padding, the header line and a small margin.
+    readonly property real listRoom: usableBottom - islandTop - gap - 2 * pad - px(20) - pad - px(8)
+    function rowsThatFit(h) {
+        return Math.max(2, Math.min(maxRows, Math.floor((listRoom + rowGap) / (h + rowGap))));
+    }
 
     // ── Theater: full-screen cover / trailers / screenshots of the open steamAF game ──
     MediaTheater {
@@ -394,6 +405,7 @@ Item {
             var p = a.mapToGlobal(0, a.height);
             island.x = Math.round(p.x);
             island.y = Math.round(p.y);
+            gs.islandTop = Math.round(p.y);
         }
 
         mainItem: Item {
@@ -489,7 +501,7 @@ Item {
                     // ── Results list ──
                     ListView {
                         id: afList
-                        readonly property int shownRows: Math.min(gs.afResults.length, gs.maxRows)
+                        readonly property int shownRows: Math.min(gs.afResults.length, gs.rowsThatFit(gs.rowH))
                         visible: !gs.detail && gs.afResults.length > 0
                         width: parent.width
                         height: visible ? shownRows * gs.rowH + Math.max(0, shownRows - 1) * gs.rowGap : 0
@@ -883,7 +895,7 @@ Item {
 
                     ListView {
                         id: hlList
-                        readonly property int shownRows: Math.min(gs.hlResults.length, gs.maxRows)
+                        readonly property int shownRows: Math.min(gs.hlResults.length, gs.rowsThatFit(gs.hlRowH))
                         visible: gs.hlResults.length > 0
                         width: parent.width
                         height: visible ? shownRows * gs.hlRowH + Math.max(0, shownRows - 1) * gs.rowGap : 0

@@ -1036,6 +1036,7 @@ PlasmoidItem {
                     islandStyle: root.gamesIslandStyle
                     islandOpacity: root.gamesIslandOpacity
                     onConfigureRequested: Plasmoid.internalAction("configure").trigger()
+                    availableRect: Plasmoid.containment ? Plasmoid.containment.availableScreenRect : Qt.rect(0, 0, 0, 0)
                 }
             }
                 }
