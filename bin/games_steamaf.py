@@ -132,6 +132,16 @@ def search(cur, query):
             snap = get("/api/status/snapshot", {
                 "appIds": ",".join(h["steamAppID"] for h in hits), "cc": cc, "country": country})
             statuses = snap.get("statuses", {})
+            # The snapshot is steamAF's cache, stale rows included (a sale that ended still reads
+            # "-70% No rush"). Revalidate the ids it flags, the way steamAF's own pages do; if that
+            # is slow or throttled, keep the cached badges.
+            stale = [aid for aid, m in (snap.get("meta") or {}).items() if m.get("needsRefresh")]
+            if stale:
+                try:
+                    fresh = get("/api/status", {"appIds": ",".join(stale), "cc": cc, "country": country}, timeout=8)
+                    statuses.update({k: v for k, v in fresh.items() if isinstance(v, dict) and state_of(v) != "loading"})
+                except Exception:
+                    pass
         except Exception:
             pass  # list still works without verdict badges
     out = []
