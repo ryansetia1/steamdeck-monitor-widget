@@ -302,14 +302,59 @@ def _rom_command(rom):
     return es_command(rom['system'], rom['path'])
 
 
+_DISPLAY_VARS = (
+    'DISPLAY', 'WAYLAND_DISPLAY', 'XAUTHORITY',
+    'XDG_SESSION_TYPE', 'XDG_CURRENT_DESKTOP',
+    'QT_QPA_PLATFORM', 'QT_IM_MODULE', 'PULSE_SERVER',
+)
+
+
+def _launch_env():
+    """Return an environment with the active graphical session variables.
+
+    deck-monitor.service starts at boot before X11/Wayland imports DISPLAY,
+    WAYLAND_DISPLAY, and XAUTHORITY into systemd --user.
+    """
+    env = os.environ.copy()
+    try:
+        out = subprocess.check_output(
+            ['systemctl', '--user', 'show-environment'],
+            stderr=subprocess.DEVNULL, text=True, timeout=1.0,
+        )
+        for line in out.splitlines():
+            if '=' not in line:
+                continue
+            k, v = line.split('=', 1)
+            if k in _DISPLAY_VARS or k not in env:
+                env[k] = v
+    except Exception:
+        pass
+    if not env.get('DISPLAY'):
+        xs = sorted(glob.glob('/tmp/.X11-unix/X*'))
+        if xs:
+            env['DISPLAY'] = ':' + os.path.basename(xs[0])[1:]
+    runtime = env.get('XDG_RUNTIME_DIR', '')
+    if not env.get('WAYLAND_DISPLAY') and runtime:
+        ws = sorted(p for p in glob.glob(os.path.join(runtime, 'wayland-*'))
+                    if not p.endswith('.lock'))
+        if ws:
+            env['WAYLAND_DISPLAY'] = os.path.basename(ws[0])
+    if env.get('DISPLAY') and not env.get('XAUTHORITY') and runtime:
+        xa = sorted(glob.glob(os.path.join(runtime, 'xauth_*')))
+        if xa:
+            env['XAUTHORITY'] = xa[0]
+    return env
+
+
 def play(item_id):
     """Start the game, detached from the daemon. {ok, error}."""
     argv, cwd = command_for(item_id)
     if not argv:
         return {'ok': False, 'error': cwd}
     try:
-        subprocess.Popen(argv, cwd=cwd, start_new_session=True, stdin=subprocess.DEVNULL,
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.Popen(argv, cwd=cwd, env=_launch_env(), start_new_session=True,
+                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL)
         return {'ok': True, 'error': ''}
     except OSError as e:
         return {'ok': False, 'error': str(e)[:160]}

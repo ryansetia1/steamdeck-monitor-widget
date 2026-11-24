@@ -87,6 +87,24 @@ class Launch(unittest.TestCase):
         self.assertEqual(sorted(L.playable()), ['gta3', 'la', 're0'])
         self.assertIsNone(L.command_for('nope')[0])
 
+    def test_launch_env_inherits_systemd_display_vars(self):
+        orig_check_output = L.subprocess.check_output
+        orig_environ = L.os.environ.copy()
+        try:
+            L.os.environ.pop('DISPLAY', None)
+            L.os.environ.pop('XAUTHORITY', None)
+            L.subprocess.check_output = lambda *a, **kw: (
+                'DISPLAY=:0\nXAUTHORITY=/run/user/1000/xauth_test\nQT_QPA_PLATFORM=xcb\n'
+            )
+            env = L._launch_env()
+            self.assertEqual(env.get('DISPLAY'), ':0')
+            self.assertEqual(env.get('XAUTHORITY'), '/run/user/1000/xauth_test')
+            self.assertEqual(env.get('QT_QPA_PLATFORM'), 'xcb')
+        finally:
+            L.subprocess.check_output = orig_check_output
+            L.os.environ.clear()
+            L.os.environ.update(orig_environ)
+
 
 if __name__ == '__main__':
     unittest.main()
