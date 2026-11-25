@@ -144,6 +144,9 @@ Item {
         var whole = Math.floor(r);
         return whole + (r - whole ? "½" : "") + "h";
     }
+    // Checklist {done,total} or null/absent (old cached payloads) -> "" / 0..1
+    function clText(g) { return g && g.checklist && g.checklist.total > 0 ? g.checklist.done + "/" + g.checklist.total + " steps" : ""; }
+    function clFrac(g) { return g && g.checklist && g.checklist.total > 0 ? Math.min(1, g.checklist.done / g.checklist.total) : 0; }
     function rowRight(g) {
         if (!g) return "";
         if (g.main_h && g.played_h) return g.played_h < g.main_h ? "~" + fmtHours(g.main_h - g.played_h) + " left" : fmtHours(g.played_h) + " played";
@@ -757,7 +760,7 @@ Item {
                     text: rs.finishPrompt && !rs.cleanser ? "Finished?"
                           : rs.movePrompt ? "Playing?"
                           : rs.running ? rs.running.minutes + " min"
-                          : rs.rowRight(rs.current)
+                          : rs.rowRight(rs.current) + (rs.clText(rs.current) ? (rs.rowRight(rs.current) ? " · " : "") + rs.clText(rs.current) : "")
                     color: (rs.finishPrompt && !rs.cleanser) || rs.movePrompt ? "#fbbf24" : rs.ink2
                     font.family: "monospace"
                     font.bold: true
@@ -925,7 +928,7 @@ Item {
 
                         // Hours
                         Rectangle {
-                            visible: !!(det.d && (det.d.hours || det.d.played_h))
+                            visible: !!(det.d && (det.d.hours || det.d.played_h || rs.clText(det.d)))
                             Layout.fillWidth: true
                             Layout.preferredHeight: hoursCol.implicitHeight + 2 * rs.px(10)
                             radius: 12
@@ -966,6 +969,20 @@ Item {
                                         font.pixelSize: rs.px(11)
                                         text: "at your pace <b>~" + rs.fmtHours(hoursCol.paceH) + "</b>" + (det.d && det.d.pace ? " (" + det.d.pace.ratio.toFixed(1) + "×)" : "")
                                     }
+                                }
+                                Rectangle {
+                                    visible: rs.clText(det.d).length > 0
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: rs.px(5)
+                                    radius: height / 2
+                                    color: rs.tileColor("#2a2f3d")
+                                    Rectangle { height: parent.height; radius: parent.radius; color: rs.green; width: parent.width * rs.clFrac(det.d) }
+                                }
+                                Text {
+                                    visible: text.length > 0
+                                    color: rs.ink2
+                                    font.pixelSize: rs.px(11)
+                                    text: rs.clText(det.d)
                                 }
                                 RowLayout {
                                     visible: !!(det.d && det.d.hours)
@@ -1403,6 +1420,22 @@ Item {
                                         width: rs.current && rs.current.main_h ? parent.width * Math.min(1, (rs.current.played_h || 0) / rs.current.main_h) : 0
                                     }
                                 }
+                                Rectangle {
+                                    visible: rs.clText(rs.current).length > 0
+                                    Layout.fillWidth: true
+                                    Layout.topMargin: rs.px(3)
+                                    Layout.preferredHeight: rs.px(5)
+                                    radius: height / 2
+                                    color: rs.tileColor("#2a2f3d")
+                                    Rectangle { height: parent.height; radius: parent.radius; color: rs.green; width: parent.width * rs.clFrac(rs.current) }
+                                }
+                                Text {
+                                    visible: text.length > 0
+                                    color: rs.mute
+                                    font.family: "monospace"
+                                    font.pixelSize: rs.px(10)
+                                    text: rs.clText(rs.current)
+                                }
                                 RowLayout {
                                     Layout.fillWidth: true
                                     Text {
@@ -1531,7 +1564,7 @@ Item {
                                         text: modelData.title + (modelData.platform ? " <font color='#6b7385'>· " + modelData.platform + "</font>" : "")
                                     }
                                     Text {
-                                        text: modelData.main_h ? "~" + rs.fmtHours(modelData.main_h) : ""
+                                        text: (rs.clText(modelData) ? modelData.checklist.done + "/" + modelData.checklist.total + "  " : "") + (modelData.main_h ? "~" + rs.fmtHours(modelData.main_h) : "")
                                         color: rs.ink2
                                         font.family: "monospace"
                                         font.pixelSize: rs.px(10)
